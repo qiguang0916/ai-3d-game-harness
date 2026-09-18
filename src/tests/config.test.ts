@@ -20,6 +20,33 @@ test("harness config parses MCP action mappings", () => {
     },
   });
 
-  assert.equal(config.adapters.blender?.command, "blender-mcp");
-  assert.equal(config.adapters.blender?.actions.inspect?.tool, "inspect_scene");
+  const blender = config.adapters.blender;
+  assert.ok(blender);
+  assert.equal(blender.type, "mcp-stdio");
+  if (blender.type !== "mcp-stdio") {
+    throw new Error("expected MCP adapter");
+  }
+  assert.equal(blender.command, "blender-mcp");
+  assert.equal(blender.actions.inspect?.tool, "inspect_scene");
+});
+
+test("harness config parses JSON process action adapters", () => {
+  const config = parseHarnessConfig({
+    version: 1,
+    adapters: {
+      codex: {
+        type: "json-process",
+        command: "codex-wrapper",
+        actions: ["implement", "review"],
+      },
+    },
+  });
+
+  const codex = config.adapters.codex;
+  assert.ok(codex);
+  assert.equal(codex.type, "json-process");
+  if (codex.type !== "json-process") {
+    throw new Error("expected JSON process adapter");
+  }
+  assert.deepEqual(codex.actions, ["implement", "review"]);
 });
