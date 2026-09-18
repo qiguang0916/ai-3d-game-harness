@@ -12,7 +12,10 @@ export class PipelineTaskExecutor implements TaskExecutor {
 
   private readonly byId: Map<string, ActionAdapter>;
 
-  constructor(adapters: ActionAdapter[]) {
+  constructor(
+    adapters: ActionAdapter[],
+    private readonly projectRoot = process.cwd(),
+  ) {
     this.byId = new Map(adapters.map((adapter) => [adapter.id, adapter]));
   }
 
@@ -54,7 +57,7 @@ export class PipelineTaskExecutor implements TaskExecutor {
       const result = await adapter.executeAction(
         step.action,
         step.input ?? {},
-        { task, step, state },
+        { projectRoot: this.projectRoot, task, step, state },
       );
 
       const record: EvidenceRecord = {
