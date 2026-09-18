@@ -55,3 +55,30 @@ test("explicit failing evidence keeps a criterion failed", () => {
   assert.equal(result.passed, false);
   assert.equal(result.criteria[0]?.failingEvidenceIds.length, 1);
 });
+
+
+test("latest passing attempt supersedes an older failing attempt", () => {
+  const oldFailure: EvidenceRecord = {
+    ...evidence("log", "fail"),
+    id: "old-fail",
+    attempt: 1,
+  };
+  const latestScreenshot: EvidenceRecord = {
+    ...evidence("screenshot"),
+    id: "latest-shot",
+    attempt: 2,
+  };
+  const latestLog: EvidenceRecord = {
+    ...evidence("log"),
+    id: "latest-log",
+    attempt: 2,
+  };
+
+  const result = evaluateTaskGate(task, [
+    oldFailure,
+    latestScreenshot,
+    latestLog,
+  ]);
+
+  assert.equal(result.passed, true);
+});
