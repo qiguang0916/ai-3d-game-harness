@@ -121,6 +121,35 @@ const applyProcessFields = <T extends ProcessBaseConfig>(
   return target;
 };
 
+const checkOperators = new Set<McpCheckOperator>([
+  "equals",
+  "not-equals",
+  "exists",
+  "empty",
+  "not-empty",
+  "gt",
+  "gte",
+  "lt",
+  "lte",
+  "includes",
+]);
+
+const parseMcpCheck = (value: unknown, label: string): McpResultCheck => {
+  const raw = asRecord(value, label);
+  const path = asString(raw.path, `${label}.path`);
+  const operator = asString(raw.operator, `${label}.operator`);
+  if (!checkOperators.has(operator as McpCheckOperator)) {
+    throw new Error(`${label}.operator is invalid: ${operator}`);
+  }
+
+  const check: McpResultCheck = {
+    path,
+    operator: operator as McpCheckOperator,
+  };
+  if (raw.value !== undefined) check.value = raw.value;
+  return check;
+};
+
 const parseMcpAdapter = (
   raw: Record<string, unknown>,
   label: string,
@@ -151,10 +180,29 @@ const parseMcpAdapter = (
         `${label}.actions.${actionName}.successPath`,
       );
     }
+    if (mapping.uriPath !== undefined) {
+      parsed.uriPath = asString(
+        mapping.uriPath,
+        `${label}.actions.${actionName}.uriPath`,
+      );
+    }
     if (mapping.failureTextIncludes !== undefined) {
       parsed.failureTextIncludes = parseStringArray(
         mapping.failureTextIncludes,
         `${label}.actions.${actionName}.failureTextIncludes`,
+      );
+    }
+    if (mapping.checks !== undefined) {
+      if (!Array.isArray(mapping.checks)) {
+        throw new Error(
+          `${label}.actions.${actionName}.checks must be an array.`,
+        );
+      }
+      parsed.checks = mapping.checks.map((check, index) =>
+        parseMcpCheck(
+          check,
+          `${label}.actions.${actionName}.checks[${index}]`,
+        ),
       );
     }
     actions[actionName] = parsed;
