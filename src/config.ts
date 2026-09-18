@@ -35,9 +35,16 @@ export interface ProcessBaseConfig {
   timeoutMs?: number;
 }
 
+export interface McpBootstrapCall {
+  tool: string;
+  arguments?: Record<string, unknown>;
+  allowError?: boolean;
+}
+
 export interface McpStdioAdapterConfig extends ProcessBaseConfig {
   type: "mcp-stdio";
   protocolVersion?: string;
+  bootstrapCalls?: McpBootstrapCall[];
   actions: Record<string, McpActionMapping>;
 }
 
@@ -223,6 +230,29 @@ const parseMcpAdapter = (
       raw.protocolVersion,
       `${label}.protocolVersion`,
     );
+  }
+
+  if (raw.bootstrapCalls !== undefined) {
+    if (!Array.isArray(raw.bootstrapCalls)) {
+      throw new Error(`${label}.bootstrapCalls must be an array.`);
+    }
+    parsed.bootstrapCalls = raw.bootstrapCalls.map((value, index) => {
+      const itemLabel = `${label}.bootstrapCalls[${index}]`;
+      const item = asRecord(value, itemLabel);
+      const call: McpBootstrapCall = {
+        tool: asString(item.tool, `${itemLabel}.tool`),
+      };
+      if (item.arguments !== undefined) {
+        call.arguments = asRecord(item.arguments, `${itemLabel}.arguments`);
+      }
+      if (item.allowError !== undefined) {
+        if (typeof item.allowError !== "boolean") {
+          throw new Error(`${itemLabel}.allowError must be boolean.`);
+        }
+        call.allowError = item.allowError;
+      }
+      return call;
+    });
   }
   return parsed;
 };
