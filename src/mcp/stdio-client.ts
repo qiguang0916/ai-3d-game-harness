@@ -35,7 +35,7 @@ export interface StdioMcpClientOptions {
 }
 
 export class StdioMcpClient {
-  private process?: ChildProcessWithoutNullStreams;
+  private process: ChildProcessWithoutNullStreams | undefined;
   private nextId = 1;
   private pending = new Map<number | string, PendingRequest>();
   private stderr = "";
