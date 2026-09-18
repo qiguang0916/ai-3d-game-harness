@@ -16,7 +16,10 @@ Automated tests cover:
 - state persistence
 - evidence persistence
 - latest-attempt quality gates
-- MCP initialize / tool discovery / tool calls
+- MCP initialize / live tool-schema discovery / tool calls
+- MCP bootstrap calls for optional tool groups
+- server-specific argument-template mapping
+- cross-task artifact/evidence handoff
 - semantic MCP pass/fail mapping
 - JSON-process agent execution
 - automatic repair and retry
@@ -38,7 +41,7 @@ A hosted runner does not have the target Mac's:
 - chosen Unity MCP server
 - KNIFE_001 source asset
 
-Therefore **real Blender -> Unity E2E is the remaining integration gate**, not a completed CI claim.
+Therefore **real Blender -> Unity E2E is the remaining environment-specific integration gate**, not a completed CI claim. The repository also includes an upstream Unity MCP protocol smoke workflow so the Harness can be checked against a real pinned Coplay server without claiming that Unity Editor itself was exercised.
 
 Use [docs/LOCAL_E2E.md](docs/LOCAL_E2E.md) for that run.
 
