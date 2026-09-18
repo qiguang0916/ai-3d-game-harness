@@ -171,3 +171,37 @@ test("harness config parses MCP bootstrap calls", () => {
     group: "testing"
   });
 });
+
+
+test("harness config parses MCP argument templates", () => {
+  const config = parseHarnessConfig({
+    version: 1,
+    adapters: {
+      unity: {
+        type: "mcp-stdio",
+        command: "unity-mcp",
+        actions: {
+          inspect_scene: {
+            tool: "find_gameobjects",
+            mergeInput: false,
+            argumentsTemplate: {
+              search_term: { $from: "input.assetId" },
+              search_method: "by_name"
+            }
+          }
+        }
+      }
+    }
+  });
+
+  const unity = config.adapters.unity;
+  assert.ok(unity && unity.type === "mcp-stdio");
+  if (!unity || unity.type !== "mcp-stdio") {
+    throw new Error("expected MCP adapter");
+  }
+  assert.equal(unity.actions.inspect_scene?.mergeInput, false);
+  assert.deepEqual(unity.actions.inspect_scene?.argumentsTemplate, {
+    search_term: { $from: "input.assetId" },
+    search_method: "by_name"
+  });
+});
