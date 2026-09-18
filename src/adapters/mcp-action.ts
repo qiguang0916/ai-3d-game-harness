@@ -198,6 +198,11 @@ export class McpActionAdapter implements ActionAdapter {
     return this.config.actions[action] !== undefined;
   }
 
+  async discoverTools(): Promise<unknown[]> {
+    await this.ensureConnected();
+    return this.client.listTools();
+  }
+
   async healthcheck(): Promise<AdapterHealth> {
     try {
       await this.ensureConnected();
