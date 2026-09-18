@@ -1,29 +1,40 @@
 # AI 3D Game Harness
 
-AI-first orchestration and verification for one-person 3D game development with Codex, Blender, and Unity.
+A headless control plane for one-person, AI-assisted 3D game development.
 
-## Why this exists
+It coordinates coding agents, Blender, Unity, MCP tools, evidence collection, quality gates, repair loops, and durable project state.
 
-Coding agents can write code, but game development is only complete when the asset imports, the scene runs, the mechanic is reachable, the Console is clean, tests pass, and visual/runtime evidence proves the result.
-
-This harness adds the missing control plane:
+## Core idea
 
 ```text
-Task Contract
-  -> dependency check
-  -> agent/tool execution
+Task DAG
+  -> Agent / tool execution
   -> Blender / Unity
-  -> evidence collection
-  -> quality gates
-  -> PASS / FAIL
-  -> retry or DONE
+  -> Evidence
+  -> Quality Gate
+  -> PASS => DONE
+  -> FAIL => Repair => Re-run
 ```
 
-An agent saying "done" is not a completion signal. Evidence is.
+An agent saying "done" is not completion. Evidence is.
 
-## Product boundary
+## What the harness owns
 
-The harness does not replace:
+- task contracts and dependency DAGs
+- persistent project state outside chat history
+- action routing
+- generic MCP stdio transport
+- generic JSON-process agent adapters
+- Blender / Unity action mapping
+- evidence history by attempt
+- semantic quality gates
+- automatic repair hooks
+- dependency blocking after failures
+- project write locking
+- preflight / doctor checks
+- machine-readable and Markdown reports
+
+## What it does not replace
 
 - Codex or another coding agent
 - Blender
@@ -31,52 +42,182 @@ The harness does not replace:
 - Blender MCP
 - Unity MCP
 
-It coordinates them and keeps durable project state outside chat history.
+Those systems do the work. The harness decides what runs, records what happened, and determines whether the result is accepted.
 
-## Foundation v0.1
-
-Implemented on the foundation branch:
-
-- typed task contracts
-- dependency graph validation
-- persistent project-state primitives
-- evidence records and JSON evidence persistence
-- evidence-based gate evaluation
-- executor/adapter abstraction
-- orchestration state machine
-- CLI foundation
-- unit tests
-- GitHub Actions CI
-
-## CLI
-
-After `npm install`:
-
-```bash
-npm run build
-
-node dist/cli.js init .
-node dist/cli.js validate-contract examples/knife-001/task-contract.json
-node dist/cli.js status .project/state.json
-```
-
-## First reference pipeline
-
-The first real end-to-end target is `KNIFE_001`:
+## Architecture
 
 ```text
-Blender asset
-  -> geometry/export validation
-  -> Unity import
-  -> material/prefab/collider integration
-  -> PlayMode
-  -> Console/tests/screenshot
-  -> evidence gate
-  -> retry/fix or DONE
+                        Task Contracts
+                              |
+                         Dependency DAG
+                              |
+                         Harness Runtime
+                    /---------+----------\
+                   /                     \
+          JSON Process Adapter         MCP Adapter
+          Codex / Supervisor        Blender / Unity
+                   \                     /
+                    \---------+----------/
+                              |
+                           Evidence
+                              |
+                         Quality Gate
+                         /          \
+                      FAIL          PASS
+                       |              |
+                    Repair           DONE
+                       |
+                     Re-run
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/UPSTREAMS.md](docs/UPSTREAMS.md), and [ROADMAP.md](ROADMAP.md).
+## Quick start
 
-## Upstream strategy
+Requires Node.js 20+.
 
-The project is its own codebase rather than a fork. It selectively learns from MIT-licensed projects such as `gamedev-ai-agents`, `quick-question`, and `everything-game-dev-code`, while keeping a unified architecture focused on Blender + Unity + Codex.
+```bash
+npm install
+npm test
+npm run build
+```
+
+Initialize durable runtime state:
+
+```bash
+node dist/cli.js init /path/to/game-project
+```
+
+Check adapter/tool bindings before execution:
+
+```bash
+node dist/cli.js doctor harness.config.json
+node dist/cli.js preflight examples/knife-001/contracts harness.config.json
+```
+
+Run one task:
+
+```bash
+node dist/cli.js run \
+  /path/to/game-project \
+  examples/knife-001/contracts/01-blender.json \
+  harness.config.json
+```
+
+Run the complete task DAG:
+
+```bash
+node dist/cli.js run-project \
+  /path/to/game-project \
+  examples/knife-001/contracts \
+  harness.config.json
+```
+
+With a repair provider such as a Codex/Supervisor wrapper:
+
+```bash
+node dist/cli.js run-project-auto \
+  /path/to/game-project \
+  examples/knife-001/contracts \
+  harness.config.json
+```
+
+## KNIFE_001 reference pipeline
+
+The repository includes a real three-stage 3D asset DAG:
+
+```text
+T-KNIFE-001-BLENDER
+  inspect -> export -> validation render
+            |
+            v
+T-KNIFE-001-UNITY
+  import -> prefab integration
+            |
+            v
+T-KNIFE-001-QA
+  PlayMode -> Console -> screenshot -> tests -> profile
+```
+
+See `examples/knife-001/contracts/`.
+
+## Evidence
+
+Evidence is versioned by attempt. A failed attempt remains in history for audit, but a repaired later attempt can pass the gate.
+
+Supported evidence classes:
+
+- file
+- log
+- screenshot
+- test
+- profiler
+- asset-report
+- runtime-observation
+
+Runtime state is stored under:
+
+```text
+.project/
+  state.json
+  evidence/
+  reports/
+  harness.lock
+```
+
+## Adapter types
+
+### MCP stdio
+
+Maps stable harness actions to whatever tool names the selected MCP server exposes.
+
+```json
+{
+  "type": "mcp-stdio",
+  "command": "your-mcp-server",
+  "actions": {
+    "tests": {
+      "tool": "run_tests",
+      "successPath": "structuredContent.success"
+    }
+  }
+}
+```
+
+### JSON process
+
+Turns Codex, a supervisor, another agent, or a deterministic local script into a first-class task executor.
+
+```json
+{
+  "type": "json-process",
+  "command": "/path/to/codex-wrapper",
+  "actions": ["implement", "review"]
+}
+```
+
+See [docs/AGENT_ADAPTERS.md](docs/AGENT_ADAPTERS.md).
+
+## Repair loop
+
+A separate repair provider receives the failed task, gate, evidence history, and state. If repair succeeds, the harness runs a new attempt and re-evaluates only the latest attempt.
+
+See [docs/REPAIR_LOOP.md](docs/REPAIR_LOOP.md).
+
+## Real Blender + Unity validation
+
+CI can fully test the Harness control plane using local fake MCP/process servers. CI cannot prove a user's Blender/Unity installation.
+
+The final real-machine E2E is documented in [docs/LOCAL_E2E.md](docs/LOCAL_E2E.md).
+
+## Design influences
+
+The project is its own implementation, not a fork. It selectively learns from MIT-licensed projects including:
+
+- `ilezhnin/gamedev-ai-agents`
+- `tykisgod/quick-question`
+- `MRCalderon3D/everything-game-dev-code`
+
+See [docs/UPSTREAMS.md](docs/UPSTREAMS.md).
+
+## License
+
+MIT.
