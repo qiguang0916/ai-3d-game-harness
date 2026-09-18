@@ -265,7 +265,13 @@ export class McpActionAdapter implements ActionAdapter {
       summary,
       metadata,
     };
-    const uri = resultUri(result);
+    const configuredUri = mapping.uriPath
+      ? getPath(result, mapping.uriPath)
+      : undefined;
+    const uri =
+      typeof configuredUri === "string" && configuredUri !== ""
+        ? configuredUri
+        : resultUri(result);
     if (uri) executionResult.uri = uri;
     return executionResult;
   }
