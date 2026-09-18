@@ -21,7 +21,7 @@ test("stdio MCP client initializes, lists tools, and calls a tool", async () => 
     const tools = await client.listTools();
     assert.deepEqual(
       tools.map((tool) => tool.name),
-      ["echo", "fail"],
+      ["echo", "fail", "file_gate"],
     );
 
     const result = await client.callTool("echo", { value: 42 });
