@@ -1,4 +1,5 @@
 import type { ActionAdapter } from "../adapters/action.js";
+import { resolveStepInput } from "./input-resolver.js";
 import type {
   EvidenceRecord,
   ExecutorResult,
@@ -6,6 +7,13 @@ import type {
   TaskContract,
   TaskExecutor,
 } from "./types.js";
+
+interface StepOutput {
+  outcome: "pass" | "fail" | "info";
+  summary: string;
+  uri?: string;
+  metadata?: Record<string, unknown>;
+}
 
 export class PipelineTaskExecutor implements TaskExecutor {
   readonly name = "pipeline";
@@ -38,6 +46,7 @@ export class PipelineTaskExecutor implements TaskExecutor {
     }
 
     const evidence: EvidenceRecord[] = [];
+    const stepOutputs: Record<string, StepOutput> = {};
     const runtime = state.tasks[task.id];
     const attempt = runtime?.attempts ?? 0;
 
@@ -54,11 +63,25 @@ export class PipelineTaskExecutor implements TaskExecutor {
         );
       }
 
+      const input = resolveStepInput(step.input ?? {}, {
+        projectRoot: this.projectRoot,
+        task: task as unknown as Record<string, unknown>,
+        steps: stepOutputs,
+      });
+
       const result = await adapter.executeAction(
         step.action,
-        step.input ?? {},
+        input,
         { projectRoot: this.projectRoot, task, step, state },
       );
+
+      const output: StepOutput = {
+        outcome: result.outcome,
+        summary: result.summary,
+      };
+      if (result.uri !== undefined) output.uri = result.uri;
+      if (result.metadata !== undefined) output.metadata = result.metadata;
+      stepOutputs[step.id] = output;
 
       const record: EvidenceRecord = {
         id: `${task.id}:${step.id}:attempt-${attempt}`,
