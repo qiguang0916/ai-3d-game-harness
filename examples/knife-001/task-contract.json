@@ -1,15 +1,15 @@
 {
   "id": "T-KNIFE-001-INTEGRATE",
   "title": "Integrate KNIFE_001 into Unity",
-  "goal": "Import the approved KNIFE_001 Blender asset into Unity as a playable, inspectable prefab with verified runtime integration.",
+  "goal": "Validate the approved KNIFE_001 Blender asset, export it, integrate it into Unity, and prove runtime readiness with evidence.",
   "kind": "integration",
   "dependencies": [],
   "maxAttempts": 3,
   "acceptanceCriteria": [
     {
       "id": "A01",
-      "description": "The exported KNIFE_001 asset exists and is readable by the Unity import pipeline.",
-      "requiredEvidence": ["file", "asset-report"]
+      "description": "The approved KNIFE_001 Blender asset is inspectable and exports successfully.",
+      "requiredEvidence": ["asset-report", "file"]
     },
     {
       "id": "A02",
@@ -19,7 +19,7 @@
     {
       "id": "A03",
       "description": "Unity enters PlayMode without relevant Console errors.",
-      "requiredEvidence": ["log", "runtime-observation"]
+      "requiredEvidence": ["runtime-observation", "log"]
     },
     {
       "id": "A04",
@@ -31,5 +31,77 @@
       "description": "Automated Unity validation tests pass.",
       "requiredEvidence": ["test"]
     }
-  ]
+  ],
+  "execution": {
+    "steps": [
+      {
+        "id": "blender-inspect",
+        "adapter": "blender",
+        "action": "inspect_asset",
+        "criterionId": "A01",
+        "evidenceType": "asset-report",
+        "input": {
+          "assetId": "KNIFE_001"
+        }
+      },
+      {
+        "id": "blender-export",
+        "adapter": "blender",
+        "action": "export_asset",
+        "criterionId": "A01",
+        "evidenceType": "file",
+        "input": {
+          "assetId": "KNIFE_001"
+        }
+      },
+      {
+        "id": "unity-prefab",
+        "adapter": "unity",
+        "action": "inspect_prefab",
+        "criterionId": "A02",
+        "evidenceType": "asset-report",
+        "input": {
+          "assetId": "KNIFE_001"
+        }
+      },
+      {
+        "id": "unity-playmode",
+        "adapter": "unity",
+        "action": "playmode",
+        "criterionId": "A03",
+        "evidenceType": "runtime-observation"
+      },
+      {
+        "id": "unity-console",
+        "adapter": "unity",
+        "action": "console",
+        "criterionId": "A03",
+        "evidenceType": "log"
+      },
+      {
+        "id": "unity-screenshot",
+        "adapter": "unity",
+        "action": "screenshot",
+        "criterionId": "A04",
+        "evidenceType": "screenshot"
+      },
+      {
+        "id": "unity-scene-inspect",
+        "adapter": "unity",
+        "action": "inspect_scene",
+        "criterionId": "A04",
+        "evidenceType": "runtime-observation",
+        "input": {
+          "assetId": "KNIFE_001"
+        }
+      },
+      {
+        "id": "unity-tests",
+        "adapter": "unity",
+        "action": "tests",
+        "criterionId": "A05",
+        "evidenceType": "test"
+      }
+    ]
+  }
 }
