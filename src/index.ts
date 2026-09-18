@@ -23,3 +23,4 @@ export * from "./repair/types.js";
 export * from "./repair/process-repair.js";
 export * from "./repair/factory.js";
 export * from "./adapters/json-process-action.js";
+export * from "./core/project-lock.js";
