@@ -65,6 +65,7 @@ export class PipelineTaskExecutor implements TaskExecutor {
         outcome: result.outcome,
         summary: result.summary,
         capturedAt: new Date().toISOString(),
+        attempt,
       };
       if (result.uri !== undefined) record.uri = result.uri;
       if (result.metadata !== undefined) record.metadata = result.metadata;
