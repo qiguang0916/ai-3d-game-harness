@@ -134,3 +134,57 @@ test("project runner blocks downstream tasks after upstream gate failure", async
     await rm(root, { recursive: true, force: true });
   }
 });
+
+
+test("project runner records execution-process failures and still finalizes state", async () => {
+  const root = await mkdtemp(join(tmpdir(), "ai3d-project-error-"));
+  try {
+    const contractsDir = join(root, "contracts");
+    await mkdir(contractsDir);
+    await writeFile(
+      join(contractsDir, "01-a.json"),
+      JSON.stringify(task("A", [], "agent-fail" as never), null, 2),
+      "utf8",
+    );
+    await writeFile(
+      join(contractsDir, "02-b.json"),
+      JSON.stringify(task("B", ["A"], "pass"), null, 2),
+      "utf8",
+    );
+
+    const configPath = join(root, "config.json");
+    await writeFile(
+      configPath,
+      JSON.stringify(
+        {
+          version: 1,
+          adapters: {
+            unity: {
+              type: "json-process",
+              command: process.execPath,
+              args: ["-e", "process.exit(3)"],
+              actions: ["agent-fail", "pass"],
+            },
+          },
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+
+    const result = await runProject({
+      projectRoot: root,
+      contractsDir,
+      configPath,
+    });
+
+    assert.equal(result.passed, false);
+    assert.equal(result.errors.length, 1);
+    assert.equal(result.errors[0]?.taskId, "A");
+    assert.equal(result.state.tasks.A?.status, "failed");
+    assert.equal(result.state.tasks.B?.status, "blocked");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
