@@ -2,6 +2,9 @@ export interface RuntimeValueContext {
   projectRoot: string;
   task: Record<string, unknown>;
   steps: Record<string, unknown>;
+  input?: Record<string, unknown>;
+  step?: Record<string, unknown>;
+  state?: Record<string, unknown>;
 }
 
 const getPath = (root: unknown, path: string): unknown => {
