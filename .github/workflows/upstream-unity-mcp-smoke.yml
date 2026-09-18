@@ -1,0 +1,90 @@
+name: upstream-unity-mcp-smoke
+
+on:
+  push:
+    branches: ["feature/**", "main"]
+    paths:
+      - "src/mcp/**"
+      - "src/adapters/**"
+      - "src/config.ts"
+      - ".github/workflows/upstream-unity-mcp-smoke.yml"
+  workflow_dispatch:
+
+jobs:
+  coplay-unity-mcp-v10:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - uses: astral-sh/setup-uv@v6
+
+      - run: npm install
+      - run: npm run build
+
+      - name: Write real Unity MCP smoke config
+        run: |
+          cat > /tmp/unity-mcp-smoke.json <<'JSON'
+          {
+            "version": 1,
+            "adapters": {
+              "unity": {
+                "type": "mcp-stdio",
+                "command": "uvx",
+                "args": [
+                  "--from",
+                  "mcpforunityserver==10.2.0",
+                  "mcp-for-unity",
+                  "--transport",
+                  "stdio"
+                ],
+                "env": {
+                  "UNITY_MCP_SKIP_STARTUP_CONNECT": "1",
+                  "DISABLE_TELEMETRY": "1"
+                },
+                "timeoutMs": 120000,
+                "bootstrapCalls": [
+                  {
+                    "tool": "manage_tools",
+                    "arguments": {
+                      "action": "activate",
+                      "group": "testing"
+                    }
+                  },
+                  {
+                    "tool": "manage_tools",
+                    "arguments": {
+                      "action": "activate",
+                      "group": "profiling"
+                    }
+                  }
+                ],
+                "actions": {
+                  "playmode": { "tool": "manage_editor" },
+                  "console": { "tool": "read_console" },
+                  "screenshot": { "tool": "manage_camera" },
+                  "inspect_scene": { "tool": "find_gameobjects" },
+                  "tests": { "tool": "run_tests" },
+                  "profile": { "tool": "manage_profiler" }
+                }
+              }
+            }
+          }
+          JSON
+
+      - name: Verify Harness against real Coplay Unity MCP server
+        run: node dist/cli.js doctor /tmp/unity-mcp-smoke.json
+
+      - name: Capture live tool catalog
+        run: node dist/cli.js discover /tmp/unity-mcp-smoke.json unity > /tmp/unity-tools.json
+
+      - name: Verify expected tools are exposed
+        run: |
+          grep -q '"name": "manage_editor"' /tmp/unity-tools.json
+          grep -q '"name": "read_console"' /tmp/unity-tools.json
+          grep -q '"name": "run_tests"' /tmp/unity-tools.json
+          grep -q '"name": "manage_profiler"' /tmp/unity-tools.json
