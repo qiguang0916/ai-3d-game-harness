@@ -1,10 +1,29 @@
 import { readFile } from "node:fs/promises";
 
+export type McpCheckOperator =
+  | "equals"
+  | "not-equals"
+  | "exists"
+  | "empty"
+  | "not-empty"
+  | "gt"
+  | "gte"
+  | "lt"
+  | "lte"
+  | "includes";
+
+export interface McpResultCheck {
+  path: string;
+  operator: McpCheckOperator;
+  value?: unknown;
+}
+
 export interface McpActionMapping {
   tool: string;
   defaultArguments?: Record<string, unknown>;
   successPath?: string;
   failureTextIncludes?: string[];
+  checks?: McpResultCheck[];
 }
 
 export interface ProcessBaseConfig {
