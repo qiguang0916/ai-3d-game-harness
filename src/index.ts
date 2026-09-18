@@ -21,3 +21,4 @@ export * from "./core/project-state.js";
 export * from "./repair/types.js";
 export * from "./repair/process-repair.js";
 export * from "./repair/factory.js";
+export * from "./adapters/json-process-action.js";
