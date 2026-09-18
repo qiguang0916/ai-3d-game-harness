@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { createInterface } from "node:readline";
 
 interface Request {
@@ -47,6 +48,15 @@ input.on("line", (line) => {
             description: "Return an MCP tool error result",
             inputSchema: { type: "object" },
           },
+          {
+            name: "file_gate",
+            description: "Pass only when a file exists",
+            inputSchema: {
+              type: "object",
+              properties: { path: { type: "string" } },
+              required: ["path"],
+            },
+          },
         ],
       },
     });
@@ -56,7 +66,13 @@ input.on("line", (line) => {
   if (request.method === "tools/call") {
     const params = request.params ?? {};
     const name = params.name;
-    const args = params.arguments ?? {};
+    const args =
+      typeof params.arguments === "object" &&
+      params.arguments !== null &&
+      !Array.isArray(params.arguments)
+        ? (params.arguments as Record<string, unknown>)
+        : {};
+
     if (name === "fail") {
       send({
         jsonrpc: "2.0",
@@ -64,6 +80,26 @@ input.on("line", (line) => {
         result: {
           isError: true,
           content: [{ type: "text", text: "requested failure" }],
+        },
+      });
+      return;
+    }
+
+    if (name === "file_gate") {
+      const path = typeof args.path === "string" ? args.path : "";
+      const exists = path !== "" && existsSync(path);
+      send({
+        jsonrpc: "2.0",
+        id: request.id,
+        result: {
+          isError: !exists,
+          content: [
+            {
+              type: "text",
+              text: exists ? `file exists: ${path}` : `file missing: ${path}`,
+            },
+          ],
+          structuredContent: { path, exists },
         },
       });
       return;
