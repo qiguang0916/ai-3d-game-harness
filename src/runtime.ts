@@ -31,9 +31,15 @@ export interface RunProjectOptions {
   autoRepair?: boolean;
 }
 
+export interface ProjectRunError {
+  taskId: string;
+  message: string;
+}
+
 export interface ProjectRunResult {
   passed: boolean;
   taskRuns: TaskRunResult[];
+  errors: ProjectRunError[];
   state: ProjectState;
 }
 
@@ -134,6 +140,7 @@ export async function runProject(
     config,
   );
   const taskRuns: TaskRunResult[] = [];
+  const errors: ProjectRunError[] = [];
 
   try {
     while (true) {
@@ -141,13 +148,28 @@ export async function runProject(
       if (ready.length === 0) break;
 
       for (const task of ready) {
-        const result = await runner.run(
-          task,
-          state,
-          options.autoRepair === true,
-        );
-        taskRuns.push(result);
-        if (!result.gate.passed) {
+        try {
+          const result = await runner.run(
+            task,
+            state,
+            options.autoRepair === true,
+          );
+          taskRuns.push(result);
+          if (!result.gate.passed) {
+            markDependencyBlockedTasks(contracts, state);
+            await stateStore.save(state);
+          }
+        } catch (error) {
+          errors.push({
+            taskId: task.id,
+            message: error instanceof Error ? error.message : String(error),
+          });
+          const runtime = state.tasks[task.id];
+          if (runtime && runtime.status !== "blocked") {
+            runtime.status = "failed";
+            runtime.lastError =
+              error instanceof Error ? error.message : String(error);
+          }
           markDependencyBlockedTasks(contracts, state);
           await stateStore.save(state);
         }
@@ -163,6 +185,7 @@ export async function runProject(
         (task) => state.tasks[task.id]?.status === "done",
       ),
       taskRuns,
+      errors,
       state,
     };
   } finally {
