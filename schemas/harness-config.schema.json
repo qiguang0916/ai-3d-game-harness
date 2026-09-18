@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-3d-game-harness.local/schemas/harness-config.schema.json",
+  "title": "AI 3D Game Harness Config",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "adapters"],
+  "properties": {
+    "version": { "const": 1 },
+    "adapters": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/mcpAdapter" }
+    },
+    "repair": { "$ref": "#/$defs/repair" }
+  },
+  "$defs": {
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool"],
+      "properties": {
+        "tool": { "type": "string", "minLength": 1 },
+        "defaultArguments": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "successPath": { "type": "string", "minLength": 1 },
+        "failureTextIncludes": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "mcpAdapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "command", "actions"],
+      "properties": {
+        "type": { "const": "mcp-stdio" },
+        "command": { "type": "string", "minLength": 1 },
+        "args": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "cwd": { "type": "string", "minLength": 1 },
+        "env": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "timeoutMs": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "protocolVersion": { "type": "string", "minLength": 1 },
+        "actions": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/action" }
+        }
+      }
+    },
+    "repair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "command"],
+      "properties": {
+        "type": { "const": "json-process" },
+        "command": { "type": "string", "minLength": 1 },
+        "args": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "cwd": { "type": "string", "minLength": 1 },
+        "env": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "timeoutMs": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    }
+  }
+}
