@@ -260,3 +260,51 @@ test("declarative MCP checks validate structured result values", async () => {
     await adapter.close();
   }
 });
+
+
+test("MCP bootstrap calls run before healthcheck discovery", async () => {
+  const adapter = new McpActionAdapter("unity", {
+    type: "mcp-stdio",
+    command: process.execPath,
+    args: [fakeServer],
+    bootstrapCalls: [
+      {
+        tool: "echo",
+        arguments: { action: "activate", group: "testing" },
+      },
+    ],
+    actions: {
+      validate: { tool: "echo" },
+    },
+  });
+
+  try {
+    const health = await adapter.healthcheck();
+    assert.equal(health.ok, true);
+  } finally {
+    await adapter.close();
+  }
+});
+
+test("MCP bootstrap failures fail healthcheck unless explicitly allowed", async () => {
+  const adapter = new McpActionAdapter("unity", {
+    type: "mcp-stdio",
+    command: process.execPath,
+    args: [fakeServer],
+    bootstrapCalls: [{ tool: "fail" }],
+    actions: {
+      validate: { tool: "echo" },
+    },
+  });
+
+  try {
+    const health = await adapter.healthcheck();
+    assert.equal(health.ok, false);
+    assert.match(
+      String(health.details.error ?? ""),
+      /bootstrap call failed/
+    );
+  } finally {
+    await adapter.close();
+  }
+});
