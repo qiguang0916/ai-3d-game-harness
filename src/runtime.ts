@@ -1,32 +1,22 @@
 import { join, resolve } from "node:path";
 import { buildActionAdapters, closeActionAdapters } from "./adapters/factory.js";
 import { loadHarnessConfig } from "./config.js";
-import { loadTaskContract } from "./core/contracts.js";
+import {
+  loadTaskContract,
+  loadTaskContracts,
+} from "./core/contracts.js";
 import { Orchestrator } from "./core/orchestrator.js";
 import { PipelineTaskExecutor } from "./core/pipeline-executor.js";
+import {
+  markDependencyBlockedTasks,
+  syncProjectState,
+} from "./core/project-state.js";
 import { JsonStateStore } from "./core/state-store.js";
-import type {
-  ProjectState,
-  TaskContract,
-} from "./core/types.js";
+import { TaskRunner, type TaskRunResult } from "./core/task-runner.js";
+import { assertTaskGraph, readyTasks } from "./core/task-graph.js";
+import type { ProjectState, TaskContract } from "./core/types.js";
 import { JsonEvidenceStore } from "./evidence/store.js";
 import { buildRepairProvider } from "./repair/factory.js";
-import type { RepairResult } from "./repair/types.js";
-
-const ensureTaskState = (
-  state: ProjectState,
-  task: TaskContract,
-): ProjectState => {
-  if (!state.tasks[task.id]) {
-    state.tasks[task.id] = {
-      taskId: task.id,
-      status: "pending",
-      attempts: 0,
-      evidenceIds: [],
-    };
-  }
-  return state;
-};
 
 export interface RunContractOptions {
   projectRoot: string;
@@ -34,12 +24,52 @@ export interface RunContractOptions {
   configPath: string;
 }
 
-export interface ContractRunSummary {
-  taskId: string;
-  passed: boolean;
-  attempts: number;
-  repairs: RepairResult[];
+export interface RunProjectOptions {
+  projectRoot: string;
+  contractsDir: string;
+  configPath: string;
+  autoRepair?: boolean;
 }
+
+export interface ProjectRunResult {
+  passed: boolean;
+  taskRuns: TaskRunResult[];
+  state: ProjectState;
+}
+
+const loadState = async (stateStore: JsonStateStore): Promise<ProjectState> => {
+  try {
+    return await stateStore.load();
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      "code" in error &&
+      (error as NodeJS.ErrnoException).code === "ENOENT"
+    ) {
+      return { version: 1, tasks: {} };
+    }
+    throw error;
+  }
+};
+
+const buildRunner = (
+  projectRoot: string,
+  stateStore: JsonStateStore,
+  evidenceStore: JsonEvidenceStore,
+  config: Awaited<ReturnType<typeof loadHarnessConfig>>,
+) => {
+  const adapters = buildActionAdapters(config);
+  const executor = new PipelineTaskExecutor(adapters);
+  const orchestrator = new Orchestrator([executor], stateStore);
+  const repairProvider = buildRepairProvider(config);
+  const runner = new TaskRunner(
+    projectRoot,
+    orchestrator,
+    evidenceStore,
+    repairProvider,
+  );
+  return { adapters, runner };
+};
 
 const executeContract = async (
   options: RunContractOptions,
@@ -48,86 +78,24 @@ const executeContract = async (
   const projectRoot = resolve(options.projectRoot);
   const task = await loadTaskContract(resolve(options.contractPath));
   const config = await loadHarnessConfig(resolve(options.configPath));
-  const stateStore = new JsonStateStore(join(projectRoot, ".project", "state.json"));
+  const stateStore = new JsonStateStore(
+    join(projectRoot, ".project", "state.json"),
+  );
   const evidenceStore = new JsonEvidenceStore(
     join(projectRoot, ".project", "evidence"),
   );
 
-  let state: ProjectState;
-  try {
-    state = await stateStore.load();
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      "code" in error &&
-      (error as NodeJS.ErrnoException).code === "ENOENT"
-    ) {
-      state = { version: 1, tasks: {} };
-    } else {
-      throw error;
-    }
-  }
-  ensureTaskState(state, task);
+  const state = syncProjectState([task], await loadState(stateStore));
   await stateStore.save(state);
 
-  const adapters = buildActionAdapters(config);
-  const repairProvider = autoRepair ? buildRepairProvider(config) : undefined;
-  const repairs: RepairResult[] = [];
-
+  const { adapters, runner } = buildRunner(
+    projectRoot,
+    stateStore,
+    evidenceStore,
+    config,
+  );
   try {
-    const executor = new PipelineTaskExecutor(adapters);
-    const orchestrator = new Orchestrator([executor], stateStore);
-
-    while (true) {
-      const priorEvidence = await evidenceStore.loadTask(task.id);
-      const result = await orchestrator.runTask(task, state, priorEvidence);
-      const priorIds = new Set(priorEvidence.map((record) => record.id));
-      const freshEvidence = result.evidence.filter(
-        (record) => !priorIds.has(record.id),
-      );
-      await evidenceStore.appendMany(freshEvidence);
-
-      if (result.gate.passed) {
-        return {
-          ...result,
-          repairs,
-          summary: {
-            taskId: task.id,
-            passed: true,
-            attempts: state.tasks[task.id]?.attempts ?? 0,
-            repairs,
-          } satisfies ContractRunSummary,
-        };
-      }
-
-      const runtime = state.tasks[task.id];
-      if (
-        !autoRepair ||
-        !repairProvider ||
-        !runtime ||
-        runtime.attempts >= task.maxAttempts
-      ) {
-        return {
-          ...result,
-          repairs,
-          summary: {
-            taskId: task.id,
-            passed: false,
-            attempts: runtime?.attempts ?? 0,
-            repairs,
-          } satisfies ContractRunSummary,
-        };
-      }
-
-      const repair = await repairProvider.repair({
-        projectRoot,
-        task,
-        gate: result.gate,
-        evidence: result.evidence,
-        state,
-      });
-      repairs.push(repair);
-    }
+    return await runner.run(task, state, autoRepair);
   } finally {
     await closeActionAdapters(adapters);
   }
@@ -139,6 +107,67 @@ export async function runContract(options: RunContractOptions) {
 
 export async function runContractAuto(options: RunContractOptions) {
   return executeContract(options, true);
+}
+
+export async function runProject(
+  options: RunProjectOptions,
+): Promise<ProjectRunResult> {
+  const projectRoot = resolve(options.projectRoot);
+  const contracts = await loadTaskContracts(resolve(options.contractsDir));
+  assertTaskGraph(contracts);
+
+  const config = await loadHarnessConfig(resolve(options.configPath));
+  const stateStore = new JsonStateStore(
+    join(projectRoot, ".project", "state.json"),
+  );
+  const evidenceStore = new JsonEvidenceStore(
+    join(projectRoot, ".project", "evidence"),
+  );
+
+  const state = syncProjectState(contracts, await loadState(stateStore));
+  await stateStore.save(state);
+
+  const { adapters, runner } = buildRunner(
+    projectRoot,
+    stateStore,
+    evidenceStore,
+    config,
+  );
+  const taskRuns: TaskRunResult[] = [];
+
+  try {
+    while (true) {
+      const ready = readyTasks(contracts, state);
+      if (ready.length === 0) break;
+
+      for (const task of ready) {
+        const result = await runner.run(
+          task,
+          state,
+          options.autoRepair === true,
+        );
+        taskRuns.push(result);
+        if (!result.gate.passed) {
+          markDependencyBlockedTasks(contracts, state);
+          await stateStore.save(state);
+        }
+      }
+    }
+
+    if (markDependencyBlockedTasks(contracts, state)) {
+      await stateStore.save(state);
+    }
+
+    return {
+      passed: contracts.every(
+        (task) => state.tasks[task.id]?.status === "done",
+      ),
+      taskRuns,
+      state,
+    };
+  } finally {
+    await closeActionAdapters(adapters);
+  }
 }
 
 export async function doctorConfig(configPath: string) {
