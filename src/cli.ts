@@ -6,7 +6,7 @@ import { evaluateTaskGate } from "./core/gates.js";
 import { loadTaskContract, loadTaskContracts } from "./core/contracts.js";
 import { assertTaskGraph, readyTasks } from "./core/task-graph.js";
 import type { EvidenceRecord, ProjectState } from "./core/types.js";
-import { doctorConfig, runContract } from "./runtime.js";
+import { doctorConfig, runContract, runContractAuto } from "./runtime.js";
 
 const usage = (): never => {
   console.error(`Usage:
@@ -16,7 +16,8 @@ const usage = (): never => {
   ai3d-harness gate <contract.json> <evidence.json>
   ai3d-harness status <state.json>
   ai3d-harness doctor <harness.config.json>
-  ai3d-harness run <project-root> <contract.json> <harness.config.json>`);
+  ai3d-harness run <project-root> <contract.json> <harness.config.json>
+  ai3d-harness run-auto <project-root> <contract.json> <harness.config.json>`);
   process.exit(2);
 };
 
@@ -111,14 +112,28 @@ const main = async (): Promise<void> => {
       process.exitCode = health.every((item) => item.ok) ? 0 : 1;
       return;
     }
-    case "run": {
+    case "run":
+    case "run-auto": {
       if (args.length !== 3) usage();
-      const result = await runContract({
+      const options = {
         projectRoot: resolve(args[0]!),
         contractPath: resolve(args[1]!),
         configPath: resolve(args[2]!),
-      });
-      console.log(JSON.stringify(result.gate, null, 2));
+      };
+      const result =
+        command === "run-auto"
+          ? await runContractAuto(options)
+          : await runContract(options);
+      console.log(
+        JSON.stringify(
+          {
+            summary: result.summary,
+            gate: result.gate,
+          },
+          null,
+          2,
+        ),
+      );
       process.exitCode = result.gate.passed ? 0 : 1;
       return;
     }
