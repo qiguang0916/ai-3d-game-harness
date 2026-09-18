@@ -132,3 +132,42 @@ test("harness config rejects unknown MCP check operators", () => {
     /operator is invalid/
   );
 });
+
+
+test("harness config parses MCP bootstrap calls", () => {
+  const config = parseHarnessConfig({
+    version: 1,
+    adapters: {
+      unity: {
+        type: "mcp-stdio",
+        command: "uvx",
+        bootstrapCalls: [
+          {
+            tool: "manage_tools",
+            arguments: { action: "activate", group: "testing" }
+          },
+          {
+            tool: "manage_tools",
+            arguments: { action: "activate", group: "profiling" },
+            allowError: false
+          }
+        ],
+        actions: {
+          tests: { tool: "run_tests" }
+        }
+      }
+    }
+  });
+
+  const unity = config.adapters.unity;
+  assert.ok(unity && unity.type === "mcp-stdio");
+  if (!unity || unity.type !== "mcp-stdio") {
+    throw new Error("expected MCP adapter");
+  }
+  assert.equal(unity.bootstrapCalls?.length, 2);
+  assert.equal(unity.bootstrapCalls?.[0]?.tool, "manage_tools");
+  assert.deepEqual(unity.bootstrapCalls?.[0]?.arguments, {
+    action: "activate",
+    group: "testing"
+  });
+});
