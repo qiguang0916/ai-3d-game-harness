@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "adapters": {
+    "blender": {
+      "type": "mcp-stdio",
+      "command": "REPLACE_WITH_BLENDER_MCP_COMMAND",
+      "args": [],
+      "timeoutMs": 60000,
+      "actions": {
+        "inspect_asset": {
+          "tool": "REPLACE_WITH_DISCOVERED_BLENDER_TOOL"
+        },
+        "export_asset": {
+          "tool": "REPLACE_WITH_DISCOVERED_BLENDER_TOOL"
+        },
+        "render_evidence": {
+          "tool": "REPLACE_WITH_DISCOVERED_BLENDER_TOOL"
+        }
+      }
+    },
+    "unity": {
+      "type": "mcp-stdio",
+      "command": "REPLACE_WITH_UNITY_MCP_COMMAND",
+      "args": [],
+      "timeoutMs": 60000,
+      "actions": {
+        "inspect_prefab": {
+          "tool": "REPLACE_WITH_DISCOVERED_UNITY_TOOL"
+        },
+        "playmode": {
+          "tool": "REPLACE_WITH_DISCOVERED_UNITY_TOOL"
+        },
+        "console": {
+          "tool": "REPLACE_WITH_DISCOVERED_UNITY_TOOL"
+        },
+        "tests": {
+          "tool": "REPLACE_WITH_DISCOVERED_UNITY_TOOL"
+        },
+        "screenshot": {
+          "tool": "REPLACE_WITH_DISCOVERED_UNITY_TOOL"
+        }
+      }
+    }
+  }
+}
