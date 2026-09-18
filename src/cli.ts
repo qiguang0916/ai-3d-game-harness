@@ -165,6 +165,7 @@ const main = async (): Promise<void> => {
           {
             passed: result.passed,
             taskRuns: result.taskRuns.map((run) => run.summary),
+            errors: result.errors,
             report: {
               json: report.jsonPath,
               markdown: report.markdownPath,
