@@ -65,6 +65,7 @@ export interface EvidenceRecord {
   outcome: EvidenceOutcome;
   summary: string;
   capturedAt: string;
+  attempt?: number;
   uri?: string;
   metadata?: Record<string, unknown>;
 }
