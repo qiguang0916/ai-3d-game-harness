@@ -62,7 +62,7 @@ export class Orchestrator {
     runtime.status = "running";
     runtime.attempts += 1;
     runtime.lastStartedAt = new Date().toISOString();
-    runtime.lastError = undefined;
+    delete runtime.lastError;
     await this.stateSink.save(state);
 
     try {
@@ -82,6 +82,8 @@ export class Orchestrator {
           .map((criterion) => criterion.criterionId)
           .join(", ");
         runtime.lastError = `Quality gate failed: ${missing}`;
+      } else {
+        delete runtime.lastError;
       }
 
       await this.stateSink.save(state);
