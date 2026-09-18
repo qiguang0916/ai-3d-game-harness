@@ -1,4 +1,7 @@
-import type { McpStdioAdapterConfig } from "../config.js";
+import type {
+  McpActionMapping,
+  McpStdioAdapterConfig,
+} from "../config.js";
 import { StdioMcpClient } from "../mcp/stdio-client.js";
 import type { McpToolResult } from "../mcp/types.js";
 import type {
@@ -28,6 +31,74 @@ const resultSummary = (result: McpToolResult): string => {
     return JSON.stringify(result.structuredContent).slice(0, 8_000);
   }
   return result.isError ? "MCP tool reported an error." : "MCP tool completed.";
+};
+
+const resultUri = (result: McpToolResult): string | undefined => {
+  for (const item of result.content ?? []) {
+    if (
+      typeof item === "object" &&
+      item !== null &&
+      "type" in item &&
+      item.type === "resource" &&
+      "resource" in item &&
+      typeof item.resource === "object" &&
+      item.resource !== null &&
+      "uri" in item.resource &&
+      typeof item.resource.uri === "string"
+    ) {
+      return item.resource.uri;
+    }
+  }
+  return undefined;
+};
+
+const getPath = (value: unknown, path: string): unknown => {
+  let current: unknown = value;
+  for (const part of path.split(".")) {
+    if (
+      typeof current !== "object" ||
+      current === null ||
+      Array.isArray(current) ||
+      !(part in current)
+    ) {
+      return undefined;
+    }
+    current = (current as Record<string, unknown>)[part];
+  }
+  return current;
+};
+
+const determineOutcome = (
+  result: McpToolResult,
+  mapping: McpActionMapping,
+  summary: string,
+): { passed: boolean; reason: string } => {
+  if (result.isError === true) {
+    return { passed: false, reason: "mcp-isError" };
+  }
+
+  const lowerSummary = summary.toLowerCase();
+  const matchedFailureText = (mapping.failureTextIncludes ?? []).find(
+    (text) => lowerSummary.includes(text.toLowerCase()),
+  );
+  if (matchedFailureText) {
+    return {
+      passed: false,
+      reason: `failure-text:${matchedFailureText}`,
+    };
+  }
+
+  if (mapping.successPath) {
+    const value = getPath(result, mapping.successPath);
+    if (value !== true) {
+      return {
+        passed: false,
+        reason: `success-path-not-true:${mapping.successPath}`,
+      };
+    }
+  }
+
+  return { passed: true, reason: "passed" };
 };
 
 export class McpActionAdapter implements ActionAdapter {
@@ -101,6 +172,8 @@ export class McpActionAdapter implements ActionAdapter {
       ...input,
     };
     const result = await this.client.callTool(mapping.tool, args);
+    const summary = resultSummary(result);
+    const outcome = determineOutcome(result, mapping, summary);
 
     const metadata: Record<string, unknown> = {
       adapter: this.id,
@@ -108,16 +181,20 @@ export class McpActionAdapter implements ActionAdapter {
       tool: mapping.tool,
       stepId: context.step.id,
       mcpIsError: result.isError === true,
+      outcomeReason: outcome.reason,
     };
     if (result.structuredContent !== undefined) {
       metadata.structuredContent = result.structuredContent;
     }
 
-    return {
-      outcome: result.isError === true ? "fail" : "pass",
-      summary: resultSummary(result),
+    const executionResult: ActionExecutionResult = {
+      outcome: outcome.passed ? "pass" : "fail",
+      summary,
       metadata,
     };
+    const uri = resultUri(result);
+    if (uri) executionResult.uri = uri;
+    return executionResult;
   }
 
   async close(): Promise<void> {
