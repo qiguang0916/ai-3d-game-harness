@@ -7,6 +7,7 @@ import {
 } from "./core/contracts.js";
 import { Orchestrator } from "./core/orchestrator.js";
 import { PipelineTaskExecutor } from "./core/pipeline-executor.js";
+import { ProjectLock } from "./core/project-lock.js";
 import {
   markDependencyBlockedTasks,
   syncProjectState,
@@ -14,7 +15,7 @@ import {
 import { JsonStateStore } from "./core/state-store.js";
 import { TaskRunner, type TaskRunResult } from "./core/task-runner.js";
 import { assertTaskGraph, readyTasks } from "./core/task-graph.js";
-import type { ProjectState, TaskContract } from "./core/types.js";
+import type { ProjectState } from "./core/types.js";
 import { JsonEvidenceStore } from "./evidence/store.js";
 import { buildRepairProvider } from "./repair/factory.js";
 
@@ -58,6 +59,18 @@ const loadState = async (stateStore: JsonStateStore): Promise<ProjectState> => {
   }
 };
 
+const withProjectLock = async <T>(
+  projectRoot: string,
+  work: () => Promise<T>,
+): Promise<T> => {
+  const lock = await ProjectLock.acquire(projectRoot);
+  try {
+    return await work();
+  } finally {
+    await lock.release();
+  }
+};
+
 const buildRunner = (
   projectRoot: string,
   stateStore: JsonStateStore,
@@ -84,27 +97,30 @@ const executeContract = async (
   const projectRoot = resolve(options.projectRoot);
   const task = await loadTaskContract(resolve(options.contractPath));
   const config = await loadHarnessConfig(resolve(options.configPath));
-  const stateStore = new JsonStateStore(
-    join(projectRoot, ".project", "state.json"),
-  );
-  const evidenceStore = new JsonEvidenceStore(
-    join(projectRoot, ".project", "evidence"),
-  );
 
-  const state = syncProjectState([task], await loadState(stateStore));
-  await stateStore.save(state);
+  return withProjectLock(projectRoot, async () => {
+    const stateStore = new JsonStateStore(
+      join(projectRoot, ".project", "state.json"),
+    );
+    const evidenceStore = new JsonEvidenceStore(
+      join(projectRoot, ".project", "evidence"),
+    );
 
-  const { adapters, runner } = buildRunner(
-    projectRoot,
-    stateStore,
-    evidenceStore,
-    config,
-  );
-  try {
-    return await runner.run(task, state, autoRepair);
-  } finally {
-    await closeActionAdapters(adapters);
-  }
+    const state = syncProjectState([task], await loadState(stateStore));
+    await stateStore.save(state);
+
+    const { adapters, runner } = buildRunner(
+      projectRoot,
+      stateStore,
+      evidenceStore,
+      config,
+    );
+    try {
+      return await runner.run(task, state, autoRepair);
+    } finally {
+      await closeActionAdapters(adapters);
+    }
+  });
 };
 
 export async function runContract(options: RunContractOptions) {
@@ -121,76 +137,78 @@ export async function runProject(
   const projectRoot = resolve(options.projectRoot);
   const contracts = await loadTaskContracts(resolve(options.contractsDir));
   assertTaskGraph(contracts);
-
   const config = await loadHarnessConfig(resolve(options.configPath));
-  const stateStore = new JsonStateStore(
-    join(projectRoot, ".project", "state.json"),
-  );
-  const evidenceStore = new JsonEvidenceStore(
-    join(projectRoot, ".project", "evidence"),
-  );
 
-  const state = syncProjectState(contracts, await loadState(stateStore));
-  await stateStore.save(state);
+  return withProjectLock(projectRoot, async () => {
+    const stateStore = new JsonStateStore(
+      join(projectRoot, ".project", "state.json"),
+    );
+    const evidenceStore = new JsonEvidenceStore(
+      join(projectRoot, ".project", "evidence"),
+    );
 
-  const { adapters, runner } = buildRunner(
-    projectRoot,
-    stateStore,
-    evidenceStore,
-    config,
-  );
-  const taskRuns: TaskRunResult[] = [];
-  const errors: ProjectRunError[] = [];
+    const state = syncProjectState(contracts, await loadState(stateStore));
+    await stateStore.save(state);
 
-  try {
-    while (true) {
-      const ready = readyTasks(contracts, state);
-      if (ready.length === 0) break;
+    const { adapters, runner } = buildRunner(
+      projectRoot,
+      stateStore,
+      evidenceStore,
+      config,
+    );
+    const taskRuns: TaskRunResult[] = [];
+    const errors: ProjectRunError[] = [];
 
-      for (const task of ready) {
-        try {
-          const result = await runner.run(
-            task,
-            state,
-            options.autoRepair === true,
-          );
-          taskRuns.push(result);
-          if (!result.gate.passed) {
+    try {
+      while (true) {
+        const ready = readyTasks(contracts, state);
+        if (ready.length === 0) break;
+
+        for (const task of ready) {
+          try {
+            const result = await runner.run(
+              task,
+              state,
+              options.autoRepair === true,
+            );
+            taskRuns.push(result);
+            if (!result.gate.passed) {
+              markDependencyBlockedTasks(contracts, state);
+              await stateStore.save(state);
+            }
+          } catch (error) {
+            errors.push({
+              taskId: task.id,
+              message: error instanceof Error ? error.message : String(error),
+            });
+            const runtime = state.tasks[task.id];
+            if (runtime && runtime.status !== "blocked") {
+              runtime.status = "failed";
+              runtime.lastError =
+                error instanceof Error ? error.message : String(error);
+            }
             markDependencyBlockedTasks(contracts, state);
             await stateStore.save(state);
           }
-        } catch (error) {
-          errors.push({
-            taskId: task.id,
-            message: error instanceof Error ? error.message : String(error),
-          });
-          const runtime = state.tasks[task.id];
-          if (runtime && runtime.status !== "blocked") {
-            runtime.status = "failed";
-            runtime.lastError =
-              error instanceof Error ? error.message : String(error);
-          }
-          markDependencyBlockedTasks(contracts, state);
-          await stateStore.save(state);
         }
       }
-    }
 
-    if (markDependencyBlockedTasks(contracts, state)) {
-      await stateStore.save(state);
-    }
+      if (markDependencyBlockedTasks(contracts, state)) {
+        await stateStore.save(state);
+      }
 
-    return {
-      passed: contracts.every(
-        (task) => state.tasks[task.id]?.status === "done",
-      ),
-      taskRuns,
-      errors,
-      state,
-    };
-  } finally {
-    await closeActionAdapters(adapters);
-  }
+      return {
+        passed: contracts.every(
+          (task) => state.tasks[task.id]?.status === "done",
+        ),
+        taskRuns,
+        errors,
+        state,
+      };
+    } finally {
+      await closeActionAdapters(adapters);
+    }
+  });
 }
 
 export async function doctorConfig(configPath: string) {
