@@ -1,0 +1,20 @@
+{
+  "name": "ai-3d-game-harness",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AI-first orchestration and evidence-gated verification for Blender + Unity game development.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test dist/tests/*.test.js",
+    "check": "npm run build && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}
