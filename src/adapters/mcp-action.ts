@@ -289,6 +289,21 @@ export class McpActionAdapter implements ActionAdapter {
   private async ensureConnected(): Promise<void> {
     if (this.connected) return;
     await this.client.connect();
+
+    for (const call of this.config.bootstrapCalls ?? []) {
+      const result = await this.client.callTool(
+        call.tool,
+        call.arguments ?? {},
+      );
+      if (result.isError === true && call.allowError !== true) {
+        const summary = resultSummary(result);
+        await this.client.close();
+        throw new Error(
+          `MCP bootstrap call failed for ${this.id}/${call.tool}: ${summary}`,
+        );
+      }
+    }
+
     this.connected = true;
   }
 }
