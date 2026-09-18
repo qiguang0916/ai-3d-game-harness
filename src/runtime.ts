@@ -220,3 +220,57 @@ export async function doctorConfig(configPath: string) {
     await closeActionAdapters(adapters);
   }
 }
+
+
+export interface AdapterDiscovery {
+  adapter: string;
+  available: boolean;
+  tools: unknown[];
+  error?: string;
+}
+
+export async function discoverConfig(
+  configPath: string,
+  adapterId?: string,
+): Promise<AdapterDiscovery[]> {
+  const config = await loadHarnessConfig(resolve(configPath));
+  const adapters = buildActionAdapters(config).filter(
+    (adapter) => adapterId === undefined || adapter.id === adapterId,
+  );
+
+  if (adapterId !== undefined && adapters.length === 0) {
+    throw new Error(`Adapter not found in config: ${adapterId}`);
+  }
+
+  try {
+    return await Promise.all(
+      adapters.map(async (adapter): Promise<AdapterDiscovery> => {
+        if (!adapter.discoverTools) {
+          return {
+            adapter: adapter.id,
+            available: false,
+            tools: [],
+            error: "Adapter does not expose tool discovery.",
+          };
+        }
+
+        try {
+          return {
+            adapter: adapter.id,
+            available: true,
+            tools: await adapter.discoverTools(),
+          };
+        } catch (error) {
+          return {
+            adapter: adapter.id,
+            available: false,
+            tools: [],
+            error: error instanceof Error ? error.message : String(error),
+          };
+        }
+      }),
+    );
+  } finally {
+    await closeActionAdapters(adapters);
+  }
+}
