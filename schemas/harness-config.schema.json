@@ -47,6 +47,32 @@
         "failureTextIncludes": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 }
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "operator"],
+            "properties": {
+              "path": { "type": "string", "minLength": 1 },
+              "operator": {
+                "enum": [
+                  "equals",
+                  "not-equals",
+                  "exists",
+                  "empty",
+                  "not-empty",
+                  "gt",
+                  "gte",
+                  "lt",
+                  "lte",
+                  "includes"
+                ]
+              },
+              "value": true
+            }
+          }
         }
       }
     },
