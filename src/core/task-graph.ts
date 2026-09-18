@@ -52,8 +52,12 @@ export function readyTasks(
 
   return contracts.filter((task) => {
     const runtime = state.tasks[task.id];
-    if (runtime?.status === "done" || runtime?.status === "running") return false;
-    if (runtime?.status === "failed" && runtime.attempts >= task.maxAttempts) {
+    if (
+      runtime?.status === "done" ||
+      runtime?.status === "running" ||
+      runtime?.status === "failed" ||
+      runtime?.status === "blocked"
+    ) {
       return false;
     }
 
