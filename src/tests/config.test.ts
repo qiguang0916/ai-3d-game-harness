@@ -50,3 +50,85 @@ test("harness config parses JSON process action adapters", () => {
   }
   assert.deepEqual(codex.actions, ["implement", "review"]);
 });
+
+
+test("harness config preserves MCP uri paths and semantic checks", () => {
+  const config = parseHarnessConfig({
+    version: 1,
+    adapters: {
+      unity: {
+        type: "mcp-stdio",
+        command: "unity-mcp",
+        actions: {
+          console: {
+            tool: "read_console",
+            uriPath: "structuredContent.reportPath",
+            failureTextIncludes: ["error"],
+            checks: [
+              {
+                path: "structuredContent.errorCount",
+                operator: "equals",
+                value: 0
+              },
+              {
+                path: "structuredContent.entries.length",
+                operator: "gte",
+                value: 0
+              }
+            ]
+          }
+        }
+      }
+    }
+  });
+
+  const unity = config.adapters.unity;
+  assert.ok(unity && unity.type === "mcp-stdio");
+  if (!unity || unity.type !== "mcp-stdio") {
+    throw new Error("expected MCP adapter");
+  }
+
+  const mapping = unity.actions.console;
+  assert.equal(mapping?.uriPath, "structuredContent.reportPath");
+  assert.deepEqual(mapping?.failureTextIncludes, ["error"]);
+  assert.deepEqual(mapping?.checks, [
+    {
+      path: "structuredContent.errorCount",
+      operator: "equals",
+      value: 0
+    },
+    {
+      path: "structuredContent.entries.length",
+      operator: "gte",
+      value: 0
+    }
+  ]);
+});
+
+test("harness config rejects unknown MCP check operators", () => {
+  assert.throws(
+    () =>
+      parseHarnessConfig({
+        version: 1,
+        adapters: {
+          unity: {
+            type: "mcp-stdio",
+            command: "unity-mcp",
+            actions: {
+              console: {
+                tool: "read_console",
+                checks: [
+                  {
+                    path: "structuredContent.errorCount",
+                    operator: "approximately",
+                    value: 0
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }),
+    /operator is invalid/
+  );
+});
