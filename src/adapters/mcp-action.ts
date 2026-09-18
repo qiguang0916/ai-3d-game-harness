@@ -1,5 +1,7 @@
+import { isDeepStrictEqual } from "node:util";
 import type {
   McpActionMapping,
+  McpResultCheck,
   McpStdioAdapterConfig,
 } from "../config.js";
 import { StdioMcpClient } from "../mcp/stdio-client.js";
@@ -55,17 +57,78 @@ const resultUri = (result: McpToolResult): string | undefined => {
 const getPath = (value: unknown, path: string): unknown => {
   let current: unknown = value;
   for (const part of path.split(".")) {
+    if (Array.isArray(current)) {
+      if (part === "length") {
+        current = current.length;
+        continue;
+      }
+      const index = Number(part);
+      if (!Number.isInteger(index) || index < 0 || index >= current.length) {
+        return undefined;
+      }
+      current = current[index];
+      continue;
+    }
+
     if (
       typeof current !== "object" ||
       current === null ||
-      Array.isArray(current) ||
       !(part in current)
     ) {
+      if (typeof current === "string" && part === "length") {
+        current = current.length;
+        continue;
+      }
       return undefined;
     }
     current = (current as Record<string, unknown>)[part];
   }
   return current;
+};
+
+const isEmpty = (value: unknown): boolean => {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string" || Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value).length === 0;
+  return false;
+};
+
+const checkPasses = (
+  actual: unknown,
+  check: McpResultCheck,
+): boolean => {
+  switch (check.operator) {
+    case "equals":
+      return isDeepStrictEqual(actual, check.value);
+    case "not-equals":
+      return !isDeepStrictEqual(actual, check.value);
+    case "exists":
+      return actual !== undefined;
+    case "empty":
+      return isEmpty(actual);
+    case "not-empty":
+      return !isEmpty(actual);
+    case "gt":
+    case "gte":
+    case "lt":
+    case "lte": {
+      if (typeof actual !== "number" || typeof check.value !== "number") {
+        return false;
+      }
+      if (check.operator === "gt") return actual > check.value;
+      if (check.operator === "gte") return actual >= check.value;
+      if (check.operator === "lt") return actual < check.value;
+      return actual <= check.value;
+    }
+    case "includes":
+      if (typeof actual === "string") {
+        return actual.includes(String(check.value ?? ""));
+      }
+      if (Array.isArray(actual)) {
+        return actual.some((item) => isDeepStrictEqual(item, check.value));
+      }
+      return false;
+  }
 };
 
 const determineOutcome = (
@@ -94,6 +157,16 @@ const determineOutcome = (
       return {
         passed: false,
         reason: `success-path-not-true:${mapping.successPath}`,
+      };
+    }
+  }
+
+  for (const check of mapping.checks ?? []) {
+    const actual = getPath(result, check.path);
+    if (!checkPasses(actual, check)) {
+      return {
+        passed: false,
+        reason: `check-failed:${check.path}:${check.operator}`,
       };
     }
   }
