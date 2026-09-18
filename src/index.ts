@@ -1,3 +1,4 @@
+export * from "./report.js";
 export * from "./config.js";
 export * from "./runtime.js";
 export * from "./core/types.js";
@@ -15,3 +16,8 @@ export * from "./adapters/mock.js";
 export * from "./evidence/store.js";
 export * from "./mcp/types.js";
 export * from "./mcp/stdio-client.js";
+export * from "./core/task-runner.js";
+export * from "./core/project-state.js";
+export * from "./repair/types.js";
+export * from "./repair/process-repair.js";
+export * from "./repair/factory.js";
