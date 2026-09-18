@@ -186,3 +186,77 @@ test("later MCP steps can consume structured output from earlier steps", async (
     await adapter.close();
   }
 });
+
+
+test("declarative MCP checks validate structured result values", async () => {
+  const adapter = new McpActionAdapter("unity", {
+    type: "mcp-stdio",
+    command: process.execPath,
+    args: [fakeServer],
+    actions: {
+      validate: {
+        tool: "echo",
+        checks: [
+          {
+            path: "structuredContent.received.failed",
+            operator: "equals",
+            value: 0,
+          },
+          {
+            path: "structuredContent.received.items",
+            operator: "empty",
+          },
+        ],
+      },
+    },
+  });
+
+  const makeTask = (items: unknown[]): TaskContract => ({
+    id: "T-CHECKS",
+    title: "Structured checks",
+    goal: "Validate generic result assertions",
+    kind: "unity",
+    dependencies: [],
+    maxAttempts: 1,
+    acceptanceCriteria: [
+      {
+        id: "A01",
+        description: "structured checks pass",
+        requiredEvidence: ["test"],
+      },
+    ],
+    execution: {
+      steps: [
+        {
+          id: "validate",
+          adapter: "unity",
+          action: "validate",
+          criterionId: "A01",
+          evidenceType: "test",
+          input: { failed: 0, items },
+        },
+      ],
+    },
+  });
+
+  try {
+    const passingTask = makeTask([]);
+    const passingState = initialProjectState([passingTask]);
+    passingState.tasks["T-CHECKS"]!.attempts = 1;
+    const executor = new PipelineTaskExecutor([adapter]);
+    const passing = await executor.execute(passingTask, passingState);
+    assert.equal(passing.evidence[0]?.outcome, "pass");
+
+    const failingTask = makeTask(["error"]);
+    const failingState = initialProjectState([failingTask]);
+    failingState.tasks["T-CHECKS"]!.attempts = 1;
+    const failing = await executor.execute(failingTask, failingState);
+    assert.equal(failing.evidence[0]?.outcome, "fail");
+    assert.match(
+      String(failing.evidence[0]?.metadata?.outcomeReason),
+      /check-failed/,
+    );
+  } finally {
+    await adapter.close();
+  }
+});
