@@ -29,5 +29,6 @@ export interface ActionAdapter {
     context: ActionExecutionContext,
   ): Promise<ActionExecutionResult>;
   healthcheck(): Promise<AdapterHealth>;
+  discoverTools?(): Promise<unknown[]>;
   close?(): Promise<void>;
 }
