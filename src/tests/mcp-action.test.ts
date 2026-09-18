@@ -308,3 +308,63 @@ test("MCP bootstrap failures fail healthcheck unless explicitly allowed", async 
     await adapter.close();
   }
 });
+
+
+test("MCP action argument templates translate stable harness input", async () => {
+  const adapter = new McpActionAdapter("unity", {
+    type: "mcp-stdio",
+    command: process.execPath,
+    args: [fakeServer],
+    actions: {
+      inspect_scene: {
+        tool: "echo",
+        mergeInput: false,
+        argumentsTemplate: {
+          search_term: { $from: "input.assetId" },
+          search_method: "by_name"
+        }
+      }
+    }
+  });
+
+  const task: TaskContract = {
+    id: "T-MAP",
+    title: "Map input",
+    goal: "Translate stable input",
+    kind: "unity",
+    dependencies: [],
+    maxAttempts: 1,
+    acceptanceCriteria: [
+      {
+        id: "A01",
+        description: "mapping passes",
+        requiredEvidence: ["runtime-observation"]
+      }
+    ],
+    execution: {
+      steps: [
+        {
+          id: "inspect",
+          adapter: "unity",
+          action: "inspect_scene",
+          criterionId: "A01",
+          evidenceType: "runtime-observation",
+          input: { assetId: "KNIFE_001" }
+        }
+      ]
+    }
+  };
+
+  try {
+    const state = initialProjectState([task]);
+    state.tasks["T-MAP"]!.attempts = 1;
+    const executor = new PipelineTaskExecutor([adapter]);
+    const result = await executor.execute(task, state);
+    const summary = result.evidence[0]?.summary ?? "";
+    assert.match(summary, /search_term/);
+    assert.match(summary, /KNIFE_001/);
+    assert.doesNotMatch(summary, /assetId/);
+  } finally {
+    await adapter.close();
+  }
+});
