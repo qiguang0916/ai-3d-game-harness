@@ -59,7 +59,7 @@ const buildRunner = (
   config: Awaited<ReturnType<typeof loadHarnessConfig>>,
 ) => {
   const adapters = buildActionAdapters(config);
-  const executor = new PipelineTaskExecutor(adapters);
+  const executor = new PipelineTaskExecutor(adapters, projectRoot);
   const orchestrator = new Orchestrator([executor], stateStore);
   const repairProvider = buildRepairProvider(config);
   const runner = new TaskRunner(
