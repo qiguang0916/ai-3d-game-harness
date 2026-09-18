@@ -8,6 +8,7 @@ import { assertTaskGraph, readyTasks } from "./core/task-graph.js";
 import type { EvidenceRecord, ProjectState } from "./core/types.js";
 import {
   doctorConfig,
+  discoverConfig,
   runContract,
   runContractAuto,
   runProject,
@@ -23,6 +24,7 @@ const usage = (): never => {
   ai3d-harness gate <contract.json> <evidence.json>
   ai3d-harness status <state.json>
   ai3d-harness doctor <harness.config.json>
+  ai3d-harness discover <harness.config.json> [adapter-id]
   ai3d-harness run <project-root> <contract.json> <harness.config.json>
   ai3d-harness run-auto <project-root> <contract.json> <harness.config.json>
   ai3d-harness run-project <project-root> <contracts-dir> <harness.config.json>
@@ -121,6 +123,13 @@ const main = async (): Promise<void> => {
       const health = await doctorConfig(resolve(args[0]!));
       console.log(JSON.stringify(health, null, 2));
       process.exitCode = health.every((item) => item.ok) ? 0 : 1;
+      return;
+    }
+    case "discover": {
+      if (args.length < 1 || args.length > 2) usage();
+      const result = await discoverConfig(resolve(args[0]!), args[1]);
+      console.log(JSON.stringify(result, null, 2));
+      process.exitCode = result.every((item) => item.available) ? 0 : 1;
       return;
     }
     case "run":
