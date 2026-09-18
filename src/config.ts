@@ -16,9 +16,19 @@ export interface McpStdioAdapterConfig {
   actions: Record<string, McpActionMapping>;
 }
 
+export interface JsonProcessRepairConfig {
+  type: "json-process";
+  command: string;
+  args?: string[];
+  cwd?: string;
+  env?: Record<string, string>;
+  timeoutMs?: number;
+}
+
 export interface HarnessConfig {
   version: 1;
   adapters: Record<string, McpStdioAdapterConfig>;
+  repair?: JsonProcessRepairConfig;
 }
 
 const asRecord = (value: unknown, label: string): Record<string, unknown> => {
@@ -31,6 +41,33 @@ const asRecord = (value: unknown, label: string): Record<string, unknown> => {
 const asString = (value: unknown, label: string): string => {
   if (typeof value !== "string" || value.trim() === "") {
     throw new Error(`${label} must be a non-empty string.`);
+  }
+  return value;
+};
+
+const parseStringArray = (value: unknown, label: string): string[] => {
+  if (!Array.isArray(value) || !value.every((item) => typeof item === "string")) {
+    throw new Error(`${label} must be a string array.`);
+  }
+  return [...value] as string[];
+};
+
+const parseEnv = (
+  value: unknown,
+  label: string,
+): Record<string, string> => {
+  const raw = asRecord(value, label);
+  return Object.fromEntries(
+    Object.entries(raw).map(([key, val]) => [
+      key,
+      asString(val, `${label}.${key}`),
+    ]),
+  );
+};
+
+const parseTimeout = (value: unknown, label: string): number => {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    throw new Error(`${label} must be a positive number.`);
   }
   return value;
 };
@@ -86,23 +123,22 @@ export function parseHarnessConfig(value: unknown): HarnessConfig {
     };
 
     if (adapter.args !== undefined) {
-      if (!Array.isArray(adapter.args) || !adapter.args.every((item) => typeof item === "string")) {
-        throw new Error(`config.adapters.${name}.args must be a string array.`);
-      }
-      parsed.args = [...adapter.args];
-    }
-    if (adapter.cwd !== undefined) parsed.cwd = asString(adapter.cwd, `config.adapters.${name}.cwd`);
-    if (adapter.env !== undefined) {
-      const env = asRecord(adapter.env, `config.adapters.${name}.env`);
-      parsed.env = Object.fromEntries(
-        Object.entries(env).map(([key, val]) => [key, asString(val, `env.${key}`)]),
+      parsed.args = parseStringArray(
+        adapter.args,
+        `config.adapters.${name}.args`,
       );
     }
+    if (adapter.cwd !== undefined) {
+      parsed.cwd = asString(adapter.cwd, `config.adapters.${name}.cwd`);
+    }
+    if (adapter.env !== undefined) {
+      parsed.env = parseEnv(adapter.env, `config.adapters.${name}.env`);
+    }
     if (adapter.timeoutMs !== undefined) {
-      if (typeof adapter.timeoutMs !== "number" || adapter.timeoutMs <= 0) {
-        throw new Error(`config.adapters.${name}.timeoutMs must be positive.`);
-      }
-      parsed.timeoutMs = adapter.timeoutMs;
+      parsed.timeoutMs = parseTimeout(
+        adapter.timeoutMs,
+        `config.adapters.${name}.timeoutMs`,
+      );
     }
     if (adapter.protocolVersion !== undefined) {
       parsed.protocolVersion = asString(
@@ -114,7 +150,39 @@ export function parseHarnessConfig(value: unknown): HarnessConfig {
     adapters[name] = parsed;
   }
 
-  return { version: 1, adapters };
+  const result: HarnessConfig = { version: 1, adapters };
+
+  if (raw.repair !== undefined) {
+    const repair = asRecord(raw.repair, "config.repair");
+    if (repair.type !== "json-process") {
+      throw new Error('config.repair.type must be "json-process".');
+    }
+
+    const parsed: JsonProcessRepairConfig = {
+      type: "json-process",
+      command: asString(repair.command, "config.repair.command"),
+    };
+
+    if (repair.args !== undefined) {
+      parsed.args = parseStringArray(repair.args, "config.repair.args");
+    }
+    if (repair.cwd !== undefined) {
+      parsed.cwd = asString(repair.cwd, "config.repair.cwd");
+    }
+    if (repair.env !== undefined) {
+      parsed.env = parseEnv(repair.env, "config.repair.env");
+    }
+    if (repair.timeoutMs !== undefined) {
+      parsed.timeoutMs = parseTimeout(
+        repair.timeoutMs,
+        "config.repair.timeoutMs",
+      );
+    }
+
+    result.repair = parsed;
+  }
+
+  return result;
 }
 
 export async function loadHarnessConfig(path: string): Promise<HarnessConfig> {
