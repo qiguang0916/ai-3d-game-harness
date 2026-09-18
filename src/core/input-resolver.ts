@@ -5,6 +5,7 @@ export interface RuntimeValueContext {
   input?: Record<string, unknown>;
   step?: Record<string, unknown>;
   state?: Record<string, unknown>;
+  dependencies?: Record<string, unknown>;
 }
 
 const getPath = (root: unknown, path: string): unknown => {
