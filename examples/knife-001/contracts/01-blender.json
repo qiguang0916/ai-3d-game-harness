@@ -1,0 +1,53 @@
+{
+  "id": "T-KNIFE-001-BLENDER",
+  "title": "Validate and export KNIFE_001 from Blender",
+  "goal": "Prove the approved KNIFE_001 source asset is structurally valid, exportable, and visually inspectable before Unity integration.",
+  "kind": "blender",
+  "dependencies": [],
+  "maxAttempts": 3,
+  "acceptanceCriteria": [
+    {
+      "id": "A01",
+      "description": "KNIFE_001 geometry and object structure pass the configured Blender inspection.",
+      "requiredEvidence": ["asset-report"]
+    },
+    {
+      "id": "A02",
+      "description": "KNIFE_001 exports successfully for engine ingestion.",
+      "requiredEvidence": ["file"]
+    },
+    {
+      "id": "A03",
+      "description": "A fixed-view validation render exists for visual review.",
+      "requiredEvidence": ["screenshot"]
+    }
+  ],
+  "execution": {
+    "steps": [
+      {
+        "id": "inspect",
+        "adapter": "blender",
+        "action": "inspect_asset",
+        "criterionId": "A01",
+        "evidenceType": "asset-report",
+        "input": { "assetId": "KNIFE_001" }
+      },
+      {
+        "id": "export",
+        "adapter": "blender",
+        "action": "export_asset",
+        "criterionId": "A02",
+        "evidenceType": "file",
+        "input": { "assetId": "KNIFE_001" }
+      },
+      {
+        "id": "render",
+        "adapter": "blender",
+        "action": "render_evidence",
+        "criterionId": "A03",
+        "evidenceType": "screenshot",
+        "input": { "assetId": "KNIFE_001", "view": "validation" }
+      }
+    ]
+  }
+}
