@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises";
 export interface McpActionMapping {
   tool: string;
   defaultArguments?: Record<string, unknown>;
+  successPath?: string;
+  failureTextIncludes?: string[];
 }
 
 export interface McpStdioAdapterConfig {
@@ -108,6 +110,18 @@ export function parseHarnessConfig(value: unknown): HarnessConfig {
         parsed.defaultArguments = asRecord(
           mapping.defaultArguments,
           `config.adapters.${name}.actions.${actionName}.defaultArguments`,
+        );
+      }
+      if (mapping.successPath !== undefined) {
+        parsed.successPath = asString(
+          mapping.successPath,
+          `config.adapters.${name}.actions.${actionName}.successPath`,
+        );
+      }
+      if (mapping.failureTextIncludes !== undefined) {
+        parsed.failureTextIncludes = parseStringArray(
+          mapping.failureTextIncludes,
+          `config.adapters.${name}.actions.${actionName}.failureTextIncludes`,
         );
       }
       actions[actionName] = parsed;
