@@ -98,6 +98,22 @@
           "exclusiveMinimum": 0
         },
         "protocolVersion": { "type": "string", "minLength": 1 },
+        "bootstrapCalls": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tool"],
+            "properties": {
+              "tool": { "type": "string", "minLength": 1 },
+              "arguments": {
+                "type": "object",
+                "additionalProperties": true
+              },
+              "allowError": { "type": "boolean" }
+            }
+          }
+        },
         "actions": {
           "type": "object",
           "additionalProperties": { "$ref": "#/$defs/action" }
