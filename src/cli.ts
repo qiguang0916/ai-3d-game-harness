@@ -6,7 +6,13 @@ import { evaluateTaskGate } from "./core/gates.js";
 import { loadTaskContract, loadTaskContracts } from "./core/contracts.js";
 import { assertTaskGraph, readyTasks } from "./core/task-graph.js";
 import type { EvidenceRecord, ProjectState } from "./core/types.js";
-import { doctorConfig, runContract, runContractAuto } from "./runtime.js";
+import {
+  doctorConfig,
+  runContract,
+  runContractAuto,
+  runProject,
+} from "./runtime.js";
+import { writeProjectReport } from "./report.js";
 
 const usage = (): never => {
   console.error(`Usage:
@@ -17,7 +23,10 @@ const usage = (): never => {
   ai3d-harness status <state.json>
   ai3d-harness doctor <harness.config.json>
   ai3d-harness run <project-root> <contract.json> <harness.config.json>
-  ai3d-harness run-auto <project-root> <contract.json> <harness.config.json>`);
+  ai3d-harness run-auto <project-root> <contract.json> <harness.config.json>
+  ai3d-harness run-project <project-root> <contracts-dir> <harness.config.json>
+  ai3d-harness run-project-auto <project-root> <contracts-dir> <harness.config.json>
+  ai3d-harness report <project-root> <contracts-dir>`);
   process.exit(2);
 };
 
@@ -135,6 +144,55 @@ const main = async (): Promise<void> => {
         ),
       );
       process.exitCode = result.gate.passed ? 0 : 1;
+      return;
+    }
+    case "run-project":
+    case "run-project-auto": {
+      if (args.length !== 3) usage();
+      const projectRoot = resolve(args[0]!);
+      const contractsDir = resolve(args[1]!);
+      const result = await runProject({
+        projectRoot,
+        contractsDir,
+        configPath: resolve(args[2]!),
+        autoRepair: command === "run-project-auto",
+      });
+      const report = await writeProjectReport(projectRoot, contractsDir);
+      console.log(
+        JSON.stringify(
+          {
+            passed: result.passed,
+            taskRuns: result.taskRuns.map((run) => run.summary),
+            report: {
+              json: report.jsonPath,
+              markdown: report.markdownPath,
+            },
+          },
+          null,
+          2,
+        ),
+      );
+      process.exitCode = result.passed ? 0 : 1;
+      return;
+    }
+    case "report": {
+      if (args.length !== 2) usage();
+      const result = await writeProjectReport(
+        resolve(args[0]!),
+        resolve(args[1]!),
+      );
+      console.log(
+        JSON.stringify(
+          {
+            passed: result.report.passed,
+            json: result.jsonPath,
+            markdown: result.markdownPath,
+          },
+          null,
+          2,
+        ),
+      );
+      process.exitCode = result.report.passed ? 0 : 1;
       return;
     }
     default:
