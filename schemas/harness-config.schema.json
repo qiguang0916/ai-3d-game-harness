@@ -43,6 +43,11 @@
           "type": "object",
           "additionalProperties": true
         },
+        "argumentsTemplate": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "mergeInput": { "type": "boolean" },
         "successPath": { "type": "string", "minLength": 1 },
         "uriPath": { "type": "string", "minLength": 1 },
         "failureTextIncludes": {
