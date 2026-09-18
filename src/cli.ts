@@ -13,6 +13,7 @@ import {
   runProject,
 } from "./runtime.js";
 import { writeProjectReport } from "./report.js";
+import { preflightProject } from "./preflight.js";
 
 const usage = (): never => {
   console.error(`Usage:
@@ -26,7 +27,8 @@ const usage = (): never => {
   ai3d-harness run-auto <project-root> <contract.json> <harness.config.json>
   ai3d-harness run-project <project-root> <contracts-dir> <harness.config.json>
   ai3d-harness run-project-auto <project-root> <contracts-dir> <harness.config.json>
-  ai3d-harness report <project-root> <contracts-dir>`);
+  ai3d-harness report <project-root> <contracts-dir>
+  ai3d-harness preflight <contracts-dir> <harness.config.json>`);
   process.exit(2);
 };
 
@@ -173,6 +175,16 @@ const main = async (): Promise<void> => {
         ),
       );
       process.exitCode = result.passed ? 0 : 1;
+      return;
+    }
+    case "preflight": {
+      if (args.length !== 2) usage();
+      const result = await preflightProject(
+        resolve(args[0]!),
+        resolve(args[1]!),
+      );
+      console.log(JSON.stringify(result, null, 2));
+      process.exitCode = result.ok ? 0 : 1;
       return;
     }
     case "report": {
