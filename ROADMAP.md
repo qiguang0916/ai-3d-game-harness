@@ -10,6 +10,10 @@ Completed:
 - [x] Attempt-versioned evidence history
 - [x] Evidence-gated acceptance
 - [x] Generic MCP stdio client
+- [x] Live MCP tool/schema discovery
+- [x] MCP bootstrap calls for dynamic tool groups
+- [x] Stable-action to server-argument templates
+- [x] Cross-task evidence/artifact handoff
 - [x] Semantic MCP result checks
 - [x] Generic JSON-process agent adapter
 - [x] Optional automatic repair provider
