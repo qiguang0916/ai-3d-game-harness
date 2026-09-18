@@ -22,6 +22,7 @@ export interface McpActionMapping {
   tool: string;
   defaultArguments?: Record<string, unknown>;
   successPath?: string;
+  uriPath?: string;
   failureTextIncludes?: string[];
   checks?: McpResultCheck[];
 }
