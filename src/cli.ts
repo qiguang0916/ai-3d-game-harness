@@ -5,8 +5,8 @@ import { resolve, join } from "node:path";
 import { evaluateTaskGate } from "./core/gates.js";
 import { loadTaskContract, loadTaskContracts } from "./core/contracts.js";
 import { assertTaskGraph, readyTasks } from "./core/task-graph.js";
-import { initialProjectState } from "./core/state-store.js";
 import type { EvidenceRecord, ProjectState } from "./core/types.js";
+import { doctorConfig, runContract } from "./runtime.js";
 
 const usage = (): never => {
   console.error(`Usage:
@@ -14,7 +14,9 @@ const usage = (): never => {
   ai3d-harness validate-contract <contract.json>
   ai3d-harness ready <contracts-dir> <state.json>
   ai3d-harness gate <contract.json> <evidence.json>
-  ai3d-harness status <state.json>`);
+  ai3d-harness status <state.json>
+  ai3d-harness doctor <harness.config.json>
+  ai3d-harness run <project-root> <contract.json> <harness.config.json>`);
   process.exit(2);
 };
 
@@ -24,11 +26,9 @@ const readJson = async <T>(path: string): Promise<T> =>
 const commandInit = async (rootArg?: string): Promise<void> => {
   const root = resolve(rootArg ?? process.cwd());
   const projectRoot = join(root, ".project");
-  const contractsDir = join(projectRoot, "contracts");
-  const evidenceDir = join(projectRoot, "evidence");
 
-  await mkdir(contractsDir, { recursive: true });
-  await mkdir(evidenceDir, { recursive: true });
+  await mkdir(join(projectRoot, "contracts"), { recursive: true });
+  await mkdir(join(projectRoot, "evidence"), { recursive: true });
   await mkdir(join(projectRoot, "logs"), { recursive: true });
   await mkdir(join(projectRoot, "screenshots"), { recursive: true });
   await mkdir(join(projectRoot, "renders"), { recursive: true });
@@ -102,6 +102,24 @@ const main = async (): Promise<void> => {
           ].join("\t"),
         );
       }
+      return;
+    }
+    case "doctor": {
+      if (args.length !== 1) usage();
+      const health = await doctorConfig(resolve(args[0]!));
+      console.log(JSON.stringify(health, null, 2));
+      process.exitCode = health.every((item) => item.ok) ? 0 : 1;
+      return;
+    }
+    case "run": {
+      if (args.length !== 3) usage();
+      const result = await runContract({
+        projectRoot: resolve(args[0]!),
+        contractPath: resolve(args[1]!),
+        configPath: resolve(args[2]!),
+      });
+      console.log(JSON.stringify(result.gate, null, 2));
+      process.exitCode = result.gate.passed ? 0 : 1;
       return;
     }
     default:
