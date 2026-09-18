@@ -34,6 +34,7 @@ export class MockPassAdapter implements HarnessAdapter {
           outcome: "pass" as const,
           summary: `Mock evidence for ${criterion.description}`,
           capturedAt: new Date().toISOString(),
+          attempt: _state.tasks[task.id]?.attempts ?? 0,
         })),
       ),
     };
