@@ -24,6 +24,9 @@
       "args": [],
       "timeoutMs": 60000,
       "actions": {
+        "import_asset": {
+          "tool": "REPLACE_WITH_DISCOVERED_UNITY_TOOL"
+        },
         "inspect_prefab": {
           "tool": "REPLACE_WITH_DISCOVERED_UNITY_TOOL"
         },
@@ -37,6 +40,12 @@
           "tool": "REPLACE_WITH_DISCOVERED_UNITY_TOOL"
         },
         "screenshot": {
+          "tool": "REPLACE_WITH_DISCOVERED_UNITY_TOOL"
+        },
+        "inspect_scene": {
+          "tool": "REPLACE_WITH_DISCOVERED_UNITY_TOOL"
+        },
+        "profile": {
           "tool": "REPLACE_WITH_DISCOVERED_UNITY_TOOL"
         }
       }
