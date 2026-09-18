@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from "node:util";
+import { resolveRuntimeValue } from "../core/input-resolver.js";
 import type {
   McpActionMapping,
   McpResultCheck,
@@ -245,9 +246,32 @@ export class McpActionAdapter implements ActionAdapter {
     }
 
     await this.ensureConnected();
+    const templated =
+      mapping.argumentsTemplate === undefined
+        ? {}
+        : resolveRuntimeValue(mapping.argumentsTemplate, {
+            projectRoot: context.projectRoot,
+            task: context.task as unknown as Record<string, unknown>,
+            steps: {},
+            input,
+            step: context.step as unknown as Record<string, unknown>,
+            state: context.state as unknown as Record<string, unknown>,
+          });
+
+    if (
+      typeof templated !== "object" ||
+      templated === null ||
+      Array.isArray(templated)
+    ) {
+      throw new Error(
+        `argumentsTemplate for ${this.id}/${action} must resolve to an object.`,
+      );
+    }
+
     const args = {
       ...(mapping.defaultArguments ?? {}),
-      ...input,
+      ...(mapping.mergeInput === false ? {} : input),
+      ...(templated as Record<string, unknown>),
     };
     const result = await this.client.callTool(mapping.tool, args);
     const summary = resultSummary(result);
