@@ -32,6 +32,20 @@ export interface AcceptanceCriterion {
   requiredEvidence: EvidenceType[];
 }
 
+export interface ExecutionStep {
+  id: string;
+  adapter: string;
+  action: string;
+  criterionId: string;
+  evidenceType: EvidenceType;
+  input?: Record<string, unknown>;
+  continueOnFailure?: boolean;
+}
+
+export interface TaskExecutionPlan {
+  steps: ExecutionStep[];
+}
+
 export interface TaskContract {
   id: string;
   title: string;
@@ -40,6 +54,7 @@ export interface TaskContract {
   dependencies: string[];
   acceptanceCriteria: AcceptanceCriterion[];
   maxAttempts: number;
+  execution?: TaskExecutionPlan;
 }
 
 export interface EvidenceRecord {
