@@ -3,13 +3,17 @@
   "title": "Integrate KNIFE_001 into Unity",
   "goal": "Import KNIFE_001 and prove the prefab, renderer, material, scale, and collider integration are valid.",
   "kind": "unity",
-  "dependencies": ["T-KNIFE-001-BLENDER"],
+  "dependencies": [
+    "T-KNIFE-001-BLENDER"
+  ],
   "maxAttempts": 3,
   "acceptanceCriteria": [
     {
       "id": "A01",
       "description": "The asset is imported and a validation prefab has the expected integration state.",
-      "requiredEvidence": ["asset-report"]
+      "requiredEvidence": [
+        "asset-report"
+      ]
     }
   ],
   "execution": {
@@ -20,7 +24,12 @@
         "action": "import_asset",
         "criterionId": "A01",
         "evidenceType": "asset-report",
-        "input": { "assetId": "KNIFE_001" }
+        "input": {
+          "assetId": "KNIFE_001",
+          "sourcePath": {
+            "$from": "dependencies.T-KNIFE-001-BLENDER.latestByType.file.uri"
+          }
+        }
       },
       {
         "id": "prefab",
@@ -28,7 +37,9 @@
         "action": "inspect_prefab",
         "criterionId": "A01",
         "evidenceType": "asset-report",
-        "input": { "assetId": "KNIFE_001" }
+        "input": {
+          "assetId": "KNIFE_001"
+        }
       }
     ]
   }
