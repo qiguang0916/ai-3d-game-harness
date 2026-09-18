@@ -7,29 +7,36 @@ export interface McpActionMapping {
   failureTextIncludes?: string[];
 }
 
-export interface McpStdioAdapterConfig {
-  type: "mcp-stdio";
+export interface ProcessBaseConfig {
   command: string;
   args?: string[];
   cwd?: string;
   env?: Record<string, string>;
   timeoutMs?: number;
+}
+
+export interface McpStdioAdapterConfig extends ProcessBaseConfig {
+  type: "mcp-stdio";
   protocolVersion?: string;
   actions: Record<string, McpActionMapping>;
 }
 
-export interface JsonProcessRepairConfig {
+export interface JsonProcessActionAdapterConfig extends ProcessBaseConfig {
   type: "json-process";
-  command: string;
-  args?: string[];
-  cwd?: string;
-  env?: Record<string, string>;
-  timeoutMs?: number;
+  actions: string[];
+}
+
+export type ActionAdapterConfig =
+  | McpStdioAdapterConfig
+  | JsonProcessActionAdapterConfig;
+
+export interface JsonProcessRepairConfig extends ProcessBaseConfig {
+  type: "json-process";
 }
 
 export interface HarnessConfig {
   version: 1;
-  adapters: Record<string, McpStdioAdapterConfig>;
+  adapters: Record<string, ActionAdapterConfig>;
   repair?: JsonProcessRepairConfig;
 }
 
@@ -74,94 +81,118 @@ const parseTimeout = (value: unknown, label: string): number => {
   return value;
 };
 
+const applyProcessFields = <T extends ProcessBaseConfig>(
+  target: T,
+  raw: Record<string, unknown>,
+  label: string,
+): T => {
+  if (raw.args !== undefined) {
+    target.args = parseStringArray(raw.args, `${label}.args`);
+  }
+  if (raw.cwd !== undefined) {
+    target.cwd = asString(raw.cwd, `${label}.cwd`);
+  }
+  if (raw.env !== undefined) {
+    target.env = parseEnv(raw.env, `${label}.env`);
+  }
+  if (raw.timeoutMs !== undefined) {
+    target.timeoutMs = parseTimeout(raw.timeoutMs, `${label}.timeoutMs`);
+  }
+  return target;
+};
+
+const parseMcpAdapter = (
+  raw: Record<string, unknown>,
+  label: string,
+): McpStdioAdapterConfig => {
+  const actionsRaw = asRecord(raw.actions, `${label}.actions`);
+  const actions: Record<string, McpActionMapping> = {};
+
+  for (const [actionName, mappingValue] of Object.entries(actionsRaw)) {
+    const mapping = asRecord(
+      mappingValue,
+      `${label}.actions.${actionName}`,
+    );
+    const parsed: McpActionMapping = {
+      tool: asString(
+        mapping.tool,
+        `${label}.actions.${actionName}.tool`,
+      ),
+    };
+    if (mapping.defaultArguments !== undefined) {
+      parsed.defaultArguments = asRecord(
+        mapping.defaultArguments,
+        `${label}.actions.${actionName}.defaultArguments`,
+      );
+    }
+    if (mapping.successPath !== undefined) {
+      parsed.successPath = asString(
+        mapping.successPath,
+        `${label}.actions.${actionName}.successPath`,
+      );
+    }
+    if (mapping.failureTextIncludes !== undefined) {
+      parsed.failureTextIncludes = parseStringArray(
+        mapping.failureTextIncludes,
+        `${label}.actions.${actionName}.failureTextIncludes`,
+      );
+    }
+    actions[actionName] = parsed;
+  }
+
+  const parsed = applyProcessFields<McpStdioAdapterConfig>(
+    {
+      type: "mcp-stdio",
+      command: asString(raw.command, `${label}.command`),
+      actions,
+    },
+    raw,
+    label,
+  );
+
+  if (raw.protocolVersion !== undefined) {
+    parsed.protocolVersion = asString(
+      raw.protocolVersion,
+      `${label}.protocolVersion`,
+    );
+  }
+  return parsed;
+};
+
+const parseJsonProcessAdapter = (
+  raw: Record<string, unknown>,
+  label: string,
+): JsonProcessActionAdapterConfig =>
+  applyProcessFields<JsonProcessActionAdapterConfig>(
+    {
+      type: "json-process",
+      command: asString(raw.command, `${label}.command`),
+      actions: parseStringArray(raw.actions, `${label}.actions`),
+    },
+    raw,
+    label,
+  );
+
 export function parseHarnessConfig(value: unknown): HarnessConfig {
   const raw = asRecord(value, "config");
   if (raw.version !== 1) throw new Error("config.version must be 1.");
 
   const adaptersRaw = asRecord(raw.adapters, "config.adapters");
-  const adapters: Record<string, McpStdioAdapterConfig> = {};
+  const adapters: Record<string, ActionAdapterConfig> = {};
 
   for (const [name, adapterValue] of Object.entries(adaptersRaw)) {
-    const adapter = asRecord(adapterValue, `config.adapters.${name}`);
-    if (adapter.type !== "mcp-stdio") {
+    const label = `config.adapters.${name}`;
+    const adapter = asRecord(adapterValue, label);
+
+    if (adapter.type === "mcp-stdio") {
+      adapters[name] = parseMcpAdapter(adapter, label);
+    } else if (adapter.type === "json-process") {
+      adapters[name] = parseJsonProcessAdapter(adapter, label);
+    } else {
       throw new Error(
-        `config.adapters.${name}.type must be "mcp-stdio".`,
+        `${label}.type must be "mcp-stdio" or "json-process".`,
       );
     }
-
-    const actionsRaw = asRecord(
-      adapter.actions,
-      `config.adapters.${name}.actions`,
-    );
-    const actions: Record<string, McpActionMapping> = {};
-
-    for (const [actionName, mappingValue] of Object.entries(actionsRaw)) {
-      const mapping = asRecord(
-        mappingValue,
-        `config.adapters.${name}.actions.${actionName}`,
-      );
-      const parsed: McpActionMapping = {
-        tool: asString(
-          mapping.tool,
-          `config.adapters.${name}.actions.${actionName}.tool`,
-        ),
-      };
-      if (mapping.defaultArguments !== undefined) {
-        parsed.defaultArguments = asRecord(
-          mapping.defaultArguments,
-          `config.adapters.${name}.actions.${actionName}.defaultArguments`,
-        );
-      }
-      if (mapping.successPath !== undefined) {
-        parsed.successPath = asString(
-          mapping.successPath,
-          `config.adapters.${name}.actions.${actionName}.successPath`,
-        );
-      }
-      if (mapping.failureTextIncludes !== undefined) {
-        parsed.failureTextIncludes = parseStringArray(
-          mapping.failureTextIncludes,
-          `config.adapters.${name}.actions.${actionName}.failureTextIncludes`,
-        );
-      }
-      actions[actionName] = parsed;
-    }
-
-    const parsed: McpStdioAdapterConfig = {
-      type: "mcp-stdio",
-      command: asString(
-        adapter.command,
-        `config.adapters.${name}.command`,
-      ),
-      actions,
-    };
-
-    if (adapter.args !== undefined) {
-      parsed.args = parseStringArray(
-        adapter.args,
-        `config.adapters.${name}.args`,
-      );
-    }
-    if (adapter.cwd !== undefined) {
-      parsed.cwd = asString(adapter.cwd, `config.adapters.${name}.cwd`);
-    }
-    if (adapter.env !== undefined) {
-      parsed.env = parseEnv(adapter.env, `config.adapters.${name}.env`);
-    }
-    if (adapter.timeoutMs !== undefined) {
-      parsed.timeoutMs = parseTimeout(
-        adapter.timeoutMs,
-        `config.adapters.${name}.timeoutMs`,
-      );
-    }
-    if (adapter.protocolVersion !== undefined) {
-      parsed.protocolVersion = asString(
-        adapter.protocolVersion,
-        `config.adapters.${name}.protocolVersion`,
-      );
-    }
-
-    adapters[name] = parsed;
   }
 
   const result: HarnessConfig = { version: 1, adapters };
@@ -172,28 +203,14 @@ export function parseHarnessConfig(value: unknown): HarnessConfig {
       throw new Error('config.repair.type must be "json-process".');
     }
 
-    const parsed: JsonProcessRepairConfig = {
-      type: "json-process",
-      command: asString(repair.command, "config.repair.command"),
-    };
-
-    if (repair.args !== undefined) {
-      parsed.args = parseStringArray(repair.args, "config.repair.args");
-    }
-    if (repair.cwd !== undefined) {
-      parsed.cwd = asString(repair.cwd, "config.repair.cwd");
-    }
-    if (repair.env !== undefined) {
-      parsed.env = parseEnv(repair.env, "config.repair.env");
-    }
-    if (repair.timeoutMs !== undefined) {
-      parsed.timeoutMs = parseTimeout(
-        repair.timeoutMs,
-        "config.repair.timeoutMs",
-      );
-    }
-
-    result.repair = parsed;
+    result.repair = applyProcessFields<JsonProcessRepairConfig>(
+      {
+        type: "json-process",
+        command: asString(repair.command, "config.repair.command"),
+      },
+      repair,
+      "config.repair",
+    );
   }
 
   return result;
