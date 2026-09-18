@@ -13,7 +13,7 @@ const fakeServer = fileURLToPath(
 const task = (
   id: string,
   dependencies: string[],
-  action: "pass" | "fail",
+  action: string,
 ) => ({
   id,
   title: id,
@@ -143,7 +143,7 @@ test("project runner records execution-process failures and still finalizes stat
     await mkdir(contractsDir);
     await writeFile(
       join(contractsDir, "01-a.json"),
-      JSON.stringify(task("A", [], "agent-fail" as never), null, 2),
+      JSON.stringify(task("A", [], "agent-fail"), null, 2),
       "utf8",
     );
     await writeFile(
