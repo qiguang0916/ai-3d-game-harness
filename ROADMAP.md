@@ -8,10 +8,10 @@
 - [x] Persistent project state
 - [x] Evidence-gated acceptance
 - [x] Executor abstraction
-- [ ] Evidence persistence
-- [ ] CLI
-- [ ] CI green
-- [ ] Foundation PR
+- [x] Evidence persistence
+- [x] CLI
+- [x] CI green
+- [x] Foundation PR
 
 ## v0.2 — Blender execution layer
 
