@@ -14,6 +14,7 @@ export interface ActionExecutionResult {
 }
 
 export interface ActionExecutionContext {
+  projectRoot: string;
   task: TaskContract;
   step: ExecutionStep;
   state: ProjectState;
