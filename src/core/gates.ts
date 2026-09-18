@@ -5,11 +5,27 @@ import type {
   TaskGateResult,
 } from "./types.js";
 
+export function latestAttemptEvidence(
+  taskId: string,
+  evidence: EvidenceRecord[],
+): EvidenceRecord[] {
+  const taskEvidence = evidence.filter((item) => item.taskId === taskId);
+  if (taskEvidence.length === 0) return [];
+
+  const latestAttempt = Math.max(
+    ...taskEvidence.map((item) => item.attempt ?? 0),
+  );
+
+  return taskEvidence.filter(
+    (item) => (item.attempt ?? 0) === latestAttempt,
+  );
+}
+
 export function evaluateTaskGate(
   task: TaskContract,
   evidence: EvidenceRecord[],
 ): TaskGateResult {
-  const taskEvidence = evidence.filter((item) => item.taskId === task.id);
+  const taskEvidence = latestAttemptEvidence(task.id, evidence);
 
   const criteria: CriterionGateResult[] = task.acceptanceCriteria.map(
     (criterion) => {
