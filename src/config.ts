@@ -21,6 +21,8 @@ export interface McpResultCheck {
 export interface McpActionMapping {
   tool: string;
   defaultArguments?: Record<string, unknown>;
+  argumentsTemplate?: Record<string, unknown>;
+  mergeInput?: boolean;
   successPath?: string;
   uriPath?: string;
   failureTextIncludes?: string[];
@@ -180,6 +182,20 @@ const parseMcpAdapter = (
         mapping.defaultArguments,
         `${label}.actions.${actionName}.defaultArguments`,
       );
+    }
+    if (mapping.argumentsTemplate !== undefined) {
+      parsed.argumentsTemplate = asRecord(
+        mapping.argumentsTemplate,
+        `${label}.actions.${actionName}.argumentsTemplate`,
+      );
+    }
+    if (mapping.mergeInput !== undefined) {
+      if (typeof mapping.mergeInput !== "boolean") {
+        throw new Error(
+          `${label}.actions.${actionName}.mergeInput must be boolean.`,
+        );
+      }
+      parsed.mergeInput = mapping.mergeInput;
     }
     if (mapping.successPath !== undefined) {
       parsed.successPath = asString(
