@@ -5,13 +5,17 @@
   "type": "module",
   "description": "AI-first orchestration and evidence-gated verification for Blender + Unity game development.",
   "license": "MIT",
+  "bin": {
+    "ai3d-harness": "dist/cli.js"
+  },
   "engines": {
     "node": ">=20"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "npm run build && node --test dist/tests/*.test.js",
-    "check": "npm run build && npm test"
+    "check": "npm test",
+    "harness": "npm run build && node dist/cli.js"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
