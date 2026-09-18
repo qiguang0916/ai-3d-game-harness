@@ -1,7 +1,9 @@
 import type { ActionAdapter } from "../adapters/action.js";
+import type { JsonEvidenceStore } from "../evidence/store.js";
 import { resolveStepInput } from "./input-resolver.js";
 import type {
   EvidenceRecord,
+  EvidenceType,
   ExecutorResult,
   ProjectState,
   TaskContract,
@@ -15,6 +17,35 @@ interface StepOutput {
   metadata?: Record<string, unknown>;
 }
 
+interface DependencyEvidenceView {
+  evidence: EvidenceRecord[];
+  latestAttempt: number;
+  latest: EvidenceRecord[];
+  latestByType: Partial<Record<EvidenceType, EvidenceRecord>>;
+}
+
+const buildDependencyEvidenceView = (
+  records: EvidenceRecord[],
+): DependencyEvidenceView => {
+  const attempts = records
+    .map((record) => record.attempt ?? 0)
+    .filter((attempt) => Number.isFinite(attempt));
+  const latestAttempt = attempts.length > 0 ? Math.max(...attempts) : 0;
+  const latest = records.filter(
+    (record) => (record.attempt ?? 0) === latestAttempt,
+  );
+
+  const latestByType: Partial<Record<EvidenceType, EvidenceRecord>> = {};
+  for (const record of latest) latestByType[record.type] = record;
+
+  return {
+    evidence: records,
+    latestAttempt,
+    latest,
+    latestByType,
+  };
+};
+
 export class PipelineTaskExecutor implements TaskExecutor {
   readonly name = "pipeline";
 
@@ -23,6 +54,7 @@ export class PipelineTaskExecutor implements TaskExecutor {
   constructor(
     adapters: ActionAdapter[],
     private readonly projectRoot = process.cwd(),
+    private readonly evidenceStore?: JsonEvidenceStore,
   ) {
     this.byId = new Map(adapters.map((adapter) => [adapter.id, adapter]));
   }
@@ -47,6 +79,16 @@ export class PipelineTaskExecutor implements TaskExecutor {
 
     const evidence: EvidenceRecord[] = [];
     const stepOutputs: Record<string, StepOutput> = {};
+    const dependencyEvidence: Record<string, DependencyEvidenceView> = {};
+
+    if (this.evidenceStore) {
+      for (const dependencyId of task.dependencies) {
+        dependencyEvidence[dependencyId] = buildDependencyEvidenceView(
+          await this.evidenceStore.loadTask(dependencyId),
+        );
+      }
+    }
+
     const runtime = state.tasks[task.id];
     const attempt = runtime?.attempts ?? 0;
 
@@ -67,6 +109,8 @@ export class PipelineTaskExecutor implements TaskExecutor {
         projectRoot: this.projectRoot,
         task: task as unknown as Record<string, unknown>,
         steps: stepOutputs,
+        dependencies:
+          dependencyEvidence as unknown as Record<string, unknown>,
       });
 
       const result = await adapter.executeAction(
