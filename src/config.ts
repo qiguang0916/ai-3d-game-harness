@@ -55,9 +55,18 @@ export interface JsonProcessActionAdapterConfig extends ProcessBaseConfig {
   actions: string[];
 }
 
+// Local evidence verifier. It reads only explicitly allowed roots and
+// preserves verified artifacts under the isolated project state directory.
+export interface QaFileAdapterConfig {
+  type: "qa-file";
+  actions: string[];
+  allowedRoots?: string[];
+}
+
 export type ActionAdapterConfig =
   | McpStdioAdapterConfig
-  | JsonProcessActionAdapterConfig;
+  | JsonProcessActionAdapterConfig
+  | QaFileAdapterConfig;
 
 export interface JsonProcessRepairConfig extends ProcessBaseConfig {
   type: "json-process";
@@ -302,9 +311,20 @@ export function parseHarnessConfig(value: unknown): HarnessConfig {
       adapters[name] = parseMcpAdapter(adapter, label);
     } else if (adapter.type === "json-process") {
       adapters[name] = parseJsonProcessAdapter(adapter, label);
+    } else if (adapter.type === "qa-file") {
+      const actions=parseStringArray(adapter.actions,`${label}.actions`);
+      if(actions.length===0 || new Set(actions).size!==actions.length)
+        throw new Error(`${label}.actions must contain unique QA actions`);
+      const recognized=["unity-xml","png","json-pass","json-check","log-markers","project-identity"];
+      for(const action of actions)
+        if(!recognized.includes(action))throw new Error(`${label} unsupported QA action ${action}`);
+      const cfg:QaFileAdapterConfig={type:"qa-file",actions};
+      if(adapter.allowedRoots!==undefined)
+        cfg.allowedRoots=parseStringArray(adapter.allowedRoots,`${label}.allowedRoots`);
+      adapters[name]=cfg;
     } else {
       throw new Error(
-        `${label}.type must be "mcp-stdio" or "json-process".`,
+        `${label}.type must be "mcp-stdio", "json-process", or "qa-file".`,
       );
     }
   }

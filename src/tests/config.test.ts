@@ -30,6 +30,17 @@ test("harness config parses MCP action mappings", () => {
   assert.equal(blender.actions.inspect?.tool, "inspect_scene");
 });
 
+test("harness config validates QA file adapter actions", () => {
+  const config=parseHarnessConfig({version:1,adapters:{
+    qa:{type:"qa-file",actions:["unity-xml","png","project-identity"],
+      allowedRoots:["/tmp"]},
+  }});
+  assert.equal(config.adapters.qa?.type,"qa-file");
+  assert.throws(()=>parseHarnessConfig({version:1,adapters:{
+    qa:{type:"qa-file",actions:["delete-worktree"]},
+  }}),/unsupported QA action/);
+});
+
 test("harness config parses JSON process action adapters", () => {
   const config = parseHarnessConfig({
     version: 1,

@@ -32,6 +32,21 @@ const evidence = (
   capturedAt: new Date(0).toISOString(),
 });
 
+test("strict gate rejects unverified tool success and fake hashes", () => {
+  const strict:TaskContract={
+    ...task,
+    acceptanceCriteria:[{...task.acceptanceCriteria[0]!,requireVerifiedEvidence:true}],
+  };
+  const plain=[evidence("screenshot"),evidence("log")];
+  assert.equal(evaluateTaskGate(strict,plain).passed,false,
+    "tool returned pass without artifact validation");
+  const bogus=plain.map(e=>({...e,metadata:{verified:true,sha256:"fake"}}));
+  assert.equal(evaluateTaskGate(strict,bogus).passed,false);
+  const valid=plain.map(e=>({...e,metadata:{
+    verified:true,sha256:"a".repeat(64)}}));
+  assert.equal(evaluateTaskGate(strict,valid).passed,true);
+});
+
 test("gate fails when required evidence is missing", () => {
   const result = evaluateTaskGate(task, [evidence("screenshot")]);
   assert.equal(result.passed, false);

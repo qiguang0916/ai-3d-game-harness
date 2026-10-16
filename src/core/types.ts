@@ -30,6 +30,9 @@ export interface AcceptanceCriterion {
   id: string;
   description: string;
   requiredEvidence: EvidenceType[];
+  // A passing tool response alone is insufficient: require verified,
+  // immutable file evidence containing a SHA-256 from the QA adapter.
+  requireVerifiedEvidence?: boolean;
 }
 
 export interface ExecutionStep {

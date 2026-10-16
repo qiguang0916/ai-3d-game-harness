@@ -48,3 +48,16 @@ Use [docs/LOCAL_E2E.md](docs/LOCAL_E2E.md) for that run.
 ## Release decision
 
 Do not call the project production-ready or tag a stable v1.0 until the real-machine KNIFE_001 pipeline passes with stored evidence.
+
+
+## v0.2-alpha isolated rollout (2026-10-15/16)
+
+**Phase 0–1: implemented; Phase 2 protocol handshake only; full Unity Editor/Player E2E: BLOCKED/NOT RUN.**
+
+- Added strict NUnit XML, PNG and QA JSON artifact verification; SHA-256 snapshots; verified-evidence task-gate option; project Git/Unity/Editor identity check.
+- Validated the control plane with a private historical Second Life Workshop DAG (8/8 tasks PASS), plus two intended blocked-negative test paths.
+- Coplay Unity MCP v10.2.0 stdio initialize/listTools/Doctor passed and exposed 47 tools. The target HUD Editor was not running; no target Editor connection or live Unity test call has been claimed.
+- Local machine paths/configs/test logs live in `.local-pilot/`, excluded from Git. The user’s separate Unity game worktree was not modified.
+- Detailed evidence and limitations in `docs/V02_IMPLEMENTATION_REPORT_20261016.md`.
+
+A new version tag or stable v1.0 is **not** warranted until real target-machine E2E and release gates pass.

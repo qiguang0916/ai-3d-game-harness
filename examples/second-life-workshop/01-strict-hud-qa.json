@@ -1,0 +1,53 @@
+{
+  "id": "T-HUD-STRICT",
+  "title": "Evidence-gated HUD verification (template)",
+  "goal": "Require completed NUnit XML and a valid screenshot; no tool-invocation-only PASS",
+  "kind": "qa",
+  "dependencies": [],
+  "maxAttempts": 1,
+  "acceptanceCriteria": [
+    {
+      "id": "A01",
+      "description": "NUnit completed and all tests passed",
+      "requiredEvidence": [
+        "test"
+      ],
+      "requireVerifiedEvidence": true
+    },
+    {
+      "id": "A02",
+      "description": "Actual PNG screenshot exists and can decompress",
+      "requiredEvidence": [
+        "screenshot"
+      ],
+      "requireVerifiedEvidence": true
+    }
+  ],
+  "execution": {
+    "steps": [
+      {
+        "id": "nunit",
+        "adapter": "qa",
+        "action": "unity-xml",
+        "criterionId": "A01",
+        "evidenceType": "test",
+        "input": {
+          "path": "evidence/unity-tests.xml",
+          "minimumTests": 1
+        }
+      },
+      {
+        "id": "screenshot",
+        "adapter": "qa",
+        "action": "png",
+        "criterionId": "A02",
+        "evidenceType": "screenshot",
+        "input": {
+          "path": "evidence/real-player.png",
+          "minWidth": 1280,
+          "minHeight": 720
+        }
+      }
+    ]
+  }
+}

@@ -66,7 +66,10 @@ const parseCriterion = (value: unknown, index: number): AcceptanceCriterion => {
     );
   }
 
-  return {
+  if(raw.requireVerifiedEvidence!==undefined &&
+      typeof raw.requireVerifiedEvidence!=="boolean")
+    throw new Error(`acceptanceCriteria[${index}].requireVerifiedEvidence must be boolean`);
+  const criterion:AcceptanceCriterion={
     id: asNonEmptyString(raw.id, `acceptanceCriteria[${index}].id`),
     description: asNonEmptyString(
       raw.description,
@@ -79,6 +82,9 @@ const parseCriterion = (value: unknown, index: number): AcceptanceCriterion => {
       ),
     ),
   };
+  if(typeof raw.requireVerifiedEvidence==="boolean")
+    criterion.requireVerifiedEvidence=raw.requireVerifiedEvidence;
+  return criterion;
 };
 
 const parseExecutionStep = (value: unknown, index: number): ExecutionStep => {

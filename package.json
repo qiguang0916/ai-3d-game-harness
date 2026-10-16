@@ -1,6 +1,6 @@
 {
   "name": "ai-3d-game-harness",
-  "version": "0.1.0",
+  "version": "0.2.0-alpha.1",
   "private": true,
   "type": "module",
   "description": "AI-first orchestration and evidence-gated verification for Blender + Unity game development.",
@@ -20,5 +20,8 @@
   "devDependencies": {
     "@types/node": "^24.0.0",
     "typescript": "^5.9.0"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.11.2"
   }
 }

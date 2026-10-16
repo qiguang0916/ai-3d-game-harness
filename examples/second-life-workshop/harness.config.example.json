@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "adapters": {
+    "qa": {
+      "type": "qa-file",
+      "actions": [
+        "unity-xml",
+        "png",
+        "json-pass",
+        "json-check",
+        "project-identity",
+        "log-markers"
+      ]
+    }
+  }
+}

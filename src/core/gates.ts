@@ -33,7 +33,13 @@ export function evaluateTaskGate(
         (item) => item.criterionId === criterion.id,
       );
       const failing = matching.filter((item) => item.outcome === "fail");
-      const passing = matching.filter((item) => item.outcome === "pass");
+      const passing = matching.filter((item) =>
+        item.outcome === "pass" &&
+        (!criterion.requireVerifiedEvidence ||
+          (item.metadata?.verified === true &&
+           typeof item.metadata?.sha256 === "string" &&
+           /^[a-f0-9]{64}$/.test(item.metadata.sha256)))
+      );
 
       const missingEvidence = criterion.requiredEvidence.filter(
         (type) => !passing.some((item) => item.type === type),

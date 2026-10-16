@@ -221,3 +221,22 @@ See [docs/UPSTREAMS.md](docs/UPSTREAMS.md).
 ## License
 
 MIT.
+
+
+## v0.2-alpha branch: evidence-first Unity QA
+
+The `feat/v0.2-unity-test-harness` branch adds **read-only artifact QA** to the existing DAG + MCP control plane. It does not claim an actual Unity Editor E2E connection until a target-project identity check passes.
+
+New `qa-file` adapter:
+- `unity-xml`: inspect **completed** NUnit XML, exact test counts, failed/skipped/inconclusive = 0;
+- `png`: check real PNG structure, dimensions, per-chunk CRC and decompression;
+- `json-pass` / `json-check`: verify HUD pixel reports and QA19/QA22 physics JSON assertions;
+- `log-markers`: require explicit runtime events, reject forbidden markers;
+- `project-identity`: verify specific Git branch, Unity Editor version, optional clean worktree and **exact active Editor path**;
+- snapshot all evidence by SHA-256 into the isolated Harness runtime project.
+
+Use `requireVerifiedEvidence: true` on acceptance criteria to prevent a successful MCP invocation from satisfying test/screenshot acceptance without a verified, hashed local evidence file.
+
+See [upgrade plan](docs/UPGRADE_V02_IMPLEMENTATION.md), [work breakdown](docs/UPGRADE_V02_TASKS.md), [runbook](docs/V02_LOCAL_RUNBOOK.md) and [execution report](docs/V02_IMPLEMENTATION_REPORT_20261016.md). A generic strict contract is under `examples/second-life-workshop/`.
+
+**Boundary:** MCP protocol discovery, historical-artefact verification and deterministic replay are distinct levels. Actual Unity Editor TestJob lifecycle, new Player replay, OS mouse automation and full-game E2E remain future gated phases. Do not treat this alpha branch as a commercial Unity test certification.
