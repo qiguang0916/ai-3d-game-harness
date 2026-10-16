@@ -1,5 +1,21 @@
 # AI 3D Game Harness
 
+**Current tool release: v0.3.0 · macOS Unity Editor + Player QA + evidence-driven release gate.**
+
+**中文用户指南：[完整安装与使用](docs/USER_GUIDE_CN.md) · [交付与实测报告](docs/FINAL_DELIVERY_REPORT_20261016.md)**
+
+Quick start after downloading the source/release archive:
+
+```bash
+./scripts/bootstrap.sh
+./bin/ai3d-harness doctor examples/second-life-workshop/harness.config.example.json
+./bin/ai3d-game-qa --help
+```
+
+Features: real Coplay Unity MCP TestJobs, scripted Player replay, actual macOS A/B screenshots, pixel diff/heatmaps, performance log gates, optional permission-bound native OS mouse input, A4 paper-cut verification, isolated Codex repair, and seven-category same-commit release gating. See [v0.3.0 changelog](CHANGELOG.md).
+
+**Tool passing its own tests does not mean the game passed.** Current Second Life Workshop still has real 180°/360° rotation and stone-contact test failures; native OS input needs Accessibility authorization and final paper tearing proof is absent. All these conditions remain BLOCKED/FAIL, not hidden.
+
 A headless control plane for one-person, AI-assisted 3D game development.
 
 It coordinates coding agents, Blender, Unity, MCP tools, evidence collection, quality gates, repair loops, and durable project state.

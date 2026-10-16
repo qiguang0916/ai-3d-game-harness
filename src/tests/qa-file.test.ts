@@ -142,6 +142,28 @@ test("QA adapter verifies PNG and strict pixel report semantics",async()=>{
       "empty checks must never be a successful test");
   });
 });
+test("real Player performance log enforces minimum samples and P95/peak bounds",async()=>{
+  await sandbox(async root=>{
+    const file=join(root,"telemetry.log");
+    const good=Array.from({length:35},(_,i)=>
+      `MINIMUM_TELEMETRY step=${i} frameMs=${i===34?24:16.5} memoryMiB=${180+i}`).join("\n");
+    await writeFile(file,good);
+    const qa=new QaFileActionAdapter("qa",{type:"qa-file",actions:["performance-log"]});
+    const accepted=await qa.executeAction("performance-log",{
+      path:file,minimumSamples:30,maxP95FrameMs:33.3,maxPeakMemoryMiB:256,
+    },context(root));
+    assert.equal(accepted.outcome,"pass");
+    await writeFile(file,good.replaceAll("frameMs=16.5","frameMs=105"));
+    const slow=await qa.executeAction("performance-log",{
+      path:file,minimumSamples:30,maxP95FrameMs:33.3,
+    },context(root));
+    assert.equal(slow.outcome,"fail");
+    await writeFile(file,"MINIMUM_TELEMETRY frameMs=16 memoryMiB=100\n");
+    assert.equal((await qa.executeAction("performance-log",{
+      path:file,minimumSamples:30},context(root))).outcome,"fail");
+  });
+});
+
 test("project identity is read-only and checks branch/version/dirty flag",async()=>{
   await sandbox(async root=>{
     const game=join(root,"unity");await mkdir(join(game,"ProjectSettings"),{recursive:true});

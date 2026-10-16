@@ -3,6 +3,7 @@ import type { ActionAdapter } from "./action.js";
 import { JsonProcessActionAdapter } from "./json-process-action.js";
 import { McpActionAdapter } from "./mcp-action.js";
 import { QaFileActionAdapter } from "./qa-file.js";
+import { UnityEditorActionAdapter } from "./unity-editor.js";
 
 export function buildActionAdapters(config: HarnessConfig): ActionAdapter[] {
   return Object.entries(config.adapters).map(([name, adapter]) => {
@@ -11,6 +12,9 @@ export function buildActionAdapters(config: HarnessConfig): ActionAdapter[] {
     }
     if (adapter.type === "qa-file") {
       return new QaFileActionAdapter(name, adapter);
+    }
+    if (adapter.type === "unity-editor") {
+      return new UnityEditorActionAdapter(name, adapter);
     }
     return new JsonProcessActionAdapter(name, adapter);
   });

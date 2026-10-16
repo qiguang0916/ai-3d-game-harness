@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Run a source/archive install without writing to global npm or Codex config.
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [[ ! -f "$ROOT/dist/cli.js" ]]; then
+  echo "Tool not built: run ./scripts/bootstrap.sh first" >&2
+  exit 3
+fi
+exec node "$ROOT/dist/cli.js" "$@"

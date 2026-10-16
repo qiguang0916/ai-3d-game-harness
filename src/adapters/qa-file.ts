@@ -8,9 +8,10 @@ import type { QaFileAdapterConfig } from "../config.js";
 import type { ActionAdapter, ActionExecutionContext, ActionExecutionResult } from "./action.js";
 import type { AdapterHealth } from "./types.js";
 import { inspectPngHeader, inspectUnityNUnitXml } from "../qa/verify.js";
+import { comparePng, type PixelRect } from "../qa/image-diff.js";
 
 const run = promisify(execFile);
-const actions = ["unity-xml", "png", "json-pass", "json-check", "log-markers", "project-identity"] as const;
+const actions = ["unity-xml", "png", "image-diff", "performance-log", "json-pass", "json-check", "log-markers", "project-identity"] as const;
 type QaAction = typeof actions[number];
 const isQaAction = (action: string): action is QaAction =>
   actions.some(candidate => candidate === action);
@@ -103,6 +104,7 @@ export class QaFileActionAdapter implements ActionAdapter {
       let passed=false;
       let summary="";
       let checks:Record<string,unknown>={};
+      let extraMetadata:Record<string,unknown>={};
       switch(action) {
         case "unity-xml": {
           const min=numeric(input.minimumTests,1,1);
@@ -119,6 +121,80 @@ export class QaFileActionAdapter implements ActionAdapter {
           summary=passed?`PNG ${result.width}x${result.height} verified`:
             "PNG rejected: "+result.errors.join("; ");
           checks={...result};break;
+        }
+        case "image-diff": {
+          const referencePath=await this.resolveSource(
+            requireString(input.referencePath,"input.referencePath"),context.projectRoot);
+          const refStat=await stat(referencePath);
+          if(!refStat.isFile()||refStat.size<1||refStat.size>24*1024*1024)
+            throw Error("invalid reference image");
+          const refBytes=await readFile(referencePath);
+          const options={
+            ...(input.region!==undefined?{region:input.region as PixelRect}:{}),
+            ...(input.ignoreRegions!==undefined?
+              {ignoreRegions:input.ignoreRegions as PixelRect[]}:{}),
+            ...(typeof input.maxChannelDelta==="number"?
+              {maxChannelDelta:input.maxChannelDelta}:{}),
+            ...(typeof input.maxDifferentFraction==="number"?
+              {maxDifferentFraction:input.maxDifferentFraction}:{}),
+            ...(typeof input.maxMeanAbsoluteDelta==="number"?
+              {maxMeanAbsoluteDelta:input.maxMeanAbsoluteDelta}:{}),
+          };
+          const measured=comparePng(bytes,refBytes,options);
+          const {diffPng,...values}=measured;
+          checks={...values};
+          passed=measured.passed;
+          summary=passed?
+            `Image comparison accepted: ${measured.differentPixels}/${measured.comparedPixels} changed`:
+            `Image comparison rejected: ${measured.errors.join("; ")}`;
+          const referenceSnapshot=await this.snapshot(referencePath,context,refBytes);
+          extraMetadata={referenceSha256:referenceSnapshot.sha256,
+            referenceUri:referenceSnapshot.uri};
+          if(diffPng) {
+            const task=context.task.id;
+            if(!/^[A-Za-z0-9._-]+$/.test(task))throw Error("unsafe task");
+            const attempt=context.state.tasks[task]?.attempts??0;
+            const dir=join(context.projectRoot,".project","evidence-files",task,
+              "attempt-"+attempt);
+            await mkdir(dir,{recursive:true});
+            const diffSha=createHash("sha256").update(diffPng).digest("hex");
+            const diffFile=join(dir,"difference-"+diffSha.slice(0,24)+".png");
+            try{await writeFile(diffFile,diffPng,{flag:"wx"});}catch(e){
+              if(!(e instanceof Error&&"code" in e&&e.code==="EEXIST"))throw e;
+            }
+            extraMetadata.diffUri=pathToFileURL(diffFile).href;
+            extraMetadata.diffSha256=diffSha;
+          }
+          break;
+        }
+        case "performance-log": {
+          const lines=bytes.toString("utf8").split(/\r?\n/);
+          const samples:{frameMs:number;memoryMiB:number}[]=[];
+          for(const line of lines) {
+            // Logged by the real Player's MINIMUM_TELEMETRY profiler. Never
+            // infer FPS from an assumed fixed Unity frame rate.
+            if(!line.includes("MINIMUM_TELEMETRY"))continue;
+            const frame=/frameMs=([0-9]+(?:\.[0-9]+)?)/.exec(line);
+            const memory=/memoryMiB=([0-9]+(?:\.[0-9]+)?)/.exec(line);
+            if(frame&&memory) {
+              const frameMs=Number(frame[1]),memoryMiB=Number(memory[1]);
+              if(Number.isFinite(frameMs)&&Number.isFinite(memoryMiB))
+                samples.push({frameMs,memoryMiB});
+            }
+          }
+          const minimumSamples=numeric(input.minimumSamples,20,1);
+          const maxP95FrameMs=numeric(input.maxP95FrameMs,33.3,.1);
+          const maxPeakMemoryMiB=numeric(input.maxPeakMemoryMiB,1024,1);
+          const frames=samples.map(x=>x.frameMs).sort((a,b)=>a-b);
+          const p95=frames.length?frames[Math.ceil(frames.length*.95)-1]??Infinity:Infinity;
+          const peak=samples.length?Math.max(...samples.map(x=>x.memoryMiB)):Infinity;
+          passed=samples.length>=minimumSamples&&p95<=maxP95FrameMs&&peak<=maxPeakMemoryMiB;
+          summary=passed?`Real Player telemetry ${samples.length} frames, P95=${p95}ms, peak=${peak}MiB`:
+            `Player performance fails/insufficient samples: count=${samples.length}, P95=${p95}, peak=${peak}`;
+          checks={sampleCount:samples.length,minSamples:minimumSamples,
+            p95FrameMs:p95,limitP95FrameMs:maxP95FrameMs,
+            peakMemoryMiB:peak,limitPeakMemoryMiB:maxPeakMemoryMiB,
+            source:"MINIMUM_TELEMETRY",passed};break;
         }
         case "json-pass": {
           const json = JSON.parse(bytes.toString("utf8")) as unknown;
@@ -188,7 +264,7 @@ export class QaFileActionAdapter implements ActionAdapter {
       return {
         outcome:passed?"pass":"fail",summary,uri:snapshot.uri,
         metadata:{action,source:source,sha256:snapshot.sha256,bytes:snapshot.size,
-          checks,verified:true,snapshotUri:snapshot.uri},
+          checks,verified:true,snapshotUri:snapshot.uri,...extraMetadata},
       };
     } catch(error) {
       return {outcome:"fail",summary:"QA inspection blocked: "+

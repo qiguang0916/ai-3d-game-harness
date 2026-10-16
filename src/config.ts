@@ -63,10 +63,18 @@ export interface QaFileAdapterConfig {
   allowedRoots?: string[];
 }
 
+/** Real Unity Editor binding: machine checks projectPath AND owns bridgePort. */
+export interface UnityEditorAdapterConfig extends ProcessBaseConfig {
+  type: "unity-editor";
+  projectPath: string;
+  bridgePort: number;
+  actions: string[];
+}
 export type ActionAdapterConfig =
   | McpStdioAdapterConfig
   | JsonProcessActionAdapterConfig
-  | QaFileAdapterConfig;
+  | QaFileAdapterConfig
+  | UnityEditorAdapterConfig;
 
 export interface JsonProcessRepairConfig extends ProcessBaseConfig {
   type: "json-process";
@@ -311,11 +319,27 @@ export function parseHarnessConfig(value: unknown): HarnessConfig {
       adapters[name] = parseMcpAdapter(adapter, label);
     } else if (adapter.type === "json-process") {
       adapters[name] = parseJsonProcessAdapter(adapter, label);
+    } else if (adapter.type === "unity-editor") {
+      const actions=parseStringArray(adapter.actions,`${label}.actions`);
+      const recognized=["run-tests","read-console","inspect-scene"];
+      if(actions.length===0 || new Set(actions).size!==actions.length ||
+         actions.some(action=>!recognized.includes(action)))
+        throw new Error(`${label} unsupported Unity Editor action`);
+      const bridgePort=adapter.bridgePort;
+      if(typeof bridgePort!=="number" || !Number.isInteger(bridgePort) ||
+         bridgePort<1 || bridgePort>65535)
+        throw new Error(`${label}.bridgePort must be a valid port`);
+      adapters[name]=applyProcessFields<UnityEditorAdapterConfig>({
+        type:"unity-editor",
+        command:asString(adapter.command,`${label}.command`),
+        projectPath:asString(adapter.projectPath,`${label}.projectPath`),
+        bridgePort,actions
+      },adapter,label);
     } else if (adapter.type === "qa-file") {
       const actions=parseStringArray(adapter.actions,`${label}.actions`);
       if(actions.length===0 || new Set(actions).size!==actions.length)
         throw new Error(`${label}.actions must contain unique QA actions`);
-      const recognized=["unity-xml","png","json-pass","json-check","log-markers","project-identity"];
+      const recognized=["unity-xml","png","image-diff","performance-log","json-pass","json-check","log-markers","project-identity"];
       for(const action of actions)
         if(!recognized.includes(action))throw new Error(`${label} unsupported QA action ${action}`);
       const cfg:QaFileAdapterConfig={type:"qa-file",actions};
@@ -324,7 +348,7 @@ export function parseHarnessConfig(value: unknown): HarnessConfig {
       adapters[name]=cfg;
     } else {
       throw new Error(
-        `${label}.type must be "mcp-stdio", "json-process", or "qa-file".`,
+        `${label}.type must be "mcp-stdio", "json-process", "qa-file", or "unity-editor".`,
       );
     }
   }

@@ -1,5 +1,18 @@
 # Project Status
 
+## Latest tool milestone: v0.3.0
+
+**Harness QA infrastructure is implemented and locally validated against real macOS Unity Editor and Player sessions.** This supersedes the older v0.2-alpha notes below.
+
+- Real Coplay Unity MCP Editor binding and finished PlayMode Job polling: confirmed.
+- Real non-Development Player A/B PNG capture and color parity: confirmed.
+- Development Player QA19/QA22 replay: executed, correctly reported actual existing game FAIL conditions.
+- macOS CGEvent input: implemented, syntax tested, correctly BLOCKED without Accessibility.
+- Full real A4 paper cutting and official Steam game release: BLOCKED pending genuine game scene, images/audio/physics + same-commit results.
+- Full tool installation, release distribution, Codex isolated repair test, self-validating QA & release gates: see [final delivery](docs/FINAL_DELIVERY_REPORT_20261016.md).
+
+## Original v0.1 baseline status (historical)
+
 ## Current status
 
 **Headless control plane: CI-validated MVP**
