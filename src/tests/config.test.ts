@@ -30,6 +30,34 @@ test("harness config parses MCP action mappings", () => {
   assert.equal(blender.actions.inspect?.tool, "inspect_scene");
 });
 
+test("harness config validates QA file adapter actions", () => {
+  const config=parseHarnessConfig({version:1,adapters:{
+    qa:{type:"qa-file",actions:["unity-xml","png","project-identity"],
+      allowedRoots:["/tmp"]},
+  }});
+  assert.equal(config.adapters.qa?.type,"qa-file");
+  assert.throws(()=>parseHarnessConfig({version:1,adapters:{
+    qa:{type:"qa-file",actions:["delete-worktree"]},
+  }}),/unsupported QA action/);
+});
+
+test("harness config validates real Unity Editor bridge identity configuration", () => {
+  const config=parseHarnessConfig({version:1,adapters:{
+    editor:{type:"unity-editor",command:"uvx",args:["mcp-for-unity"],
+      projectPath:"/tmp/project/unity",bridgePort:6401,
+      actions:["run-tests","read-console","inspect-scene"]},
+  }});
+  assert.equal(config.adapters.editor?.type,"unity-editor");
+  assert.throws(()=>parseHarnessConfig({version:1,adapters:{
+    editor:{type:"unity-editor",command:"uvx",projectPath:"/tmp/project",
+      bridgePort:0,actions:["run-tests"]},
+  }}),/bridgePort/);
+  assert.throws(()=>parseHarnessConfig({version:1,adapters:{
+    editor:{type:"unity-editor",command:"uvx",projectPath:"/tmp/project",
+      bridgePort:6401,actions:["delete_scene"]},
+  }}),/unsupported Unity Editor action/);
+});
+
 test("harness config parses JSON process action adapters", () => {
   const config = parseHarnessConfig({
     version: 1,

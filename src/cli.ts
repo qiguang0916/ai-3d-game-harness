@@ -15,6 +15,8 @@ import {
 } from "./runtime.js";
 import { writeProjectReport } from "./report.js";
 import { preflightProject } from "./preflight.js";
+import { verifyReleaseArtifacts, GAME_RELEASE_CRITERIA,
+  type ReleaseEvidence, type ReleaseCategory } from "./qa/release-gate.js";
 
 const usage = (): never => {
   console.error(`Usage:
@@ -30,7 +32,8 @@ const usage = (): never => {
   ai3d-harness run-project <project-root> <contracts-dir> <harness.config.json>
   ai3d-harness run-project-auto <project-root> <contracts-dir> <harness.config.json>
   ai3d-harness report <project-root> <contracts-dir>
-  ai3d-harness preflight <contracts-dir> <harness.config.json>`);
+  ai3d-harness preflight <contracts-dir> <harness.config.json>
+  ai3d-harness release-gate <release-evidence-manifest.json>`);
   process.exit(2);
 };
 
@@ -185,6 +188,25 @@ const main = async (): Promise<void> => {
         ),
       );
       process.exitCode = result.passed ? 0 : 1;
+      return;
+    }
+    case "release-gate": {
+      if(args.length!==1)usage();
+      const input=await readJson<{
+        expectedCommit:string;
+        evidence:ReleaseEvidence[];
+        required?:ReleaseCategory[];
+      }>(resolve(args[0]!));
+      if(!Array.isArray(input.evidence))throw Error("release evidence must be an array");
+      // A release manifest may ADD criteria, but must never remove mandatory
+      // hardware/input/visual/physics/performance/non-development gates.
+      const additional=Array.isArray(input.required)?input.required:[];
+      const categories=new Set<ReleaseCategory>(GAME_RELEASE_CRITERIA);
+      for(const category of additional)categories.add(category);
+      const result=await verifyReleaseArtifacts(input.evidence,input.expectedCommit,
+        [...categories]);
+      console.log(JSON.stringify(result,null,2));
+      process.exitCode=result.passed?0:1;
       return;
     }
     case "preflight": {

@@ -59,7 +59,10 @@ export async function buildProjectReport(
 
   return {
     generatedAt: new Date().toISOString(),
-    passed: tasks.length > 0 && tasks.every((task) => task.status === "done"),
+    // A persisted DONE bit is not enough if the contract tightened since
+    // the previous run. The current latest-attempt evidence must still pass.
+    passed: tasks.length > 0 &&
+      tasks.every((task) => task.status === "done" && task.gatePassed),
     counts,
     tasks,
   };

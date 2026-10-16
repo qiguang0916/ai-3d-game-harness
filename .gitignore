@@ -7,3 +7,7 @@ dist/
 .project/screenshots/
 .project/renders/
 .project/tmp/
+# Per-machine Unity paths and private QA evidence must not be published.
+.local-pilot/
+__pycache__/
+*.pyc

@@ -2,17 +2,53 @@ name: ci
 
 on:
   push:
-    branches: ["main", "feature/**"]
+    branches: ["main", "feature/**", "feat/**"]
+    tags: ["v*"]
   pull_request:
-    branches: ["main"]
+    branches: ["main", "feature/**", "feat/**"]
+  workflow_dispatch:
 
 jobs:
-  test:
+  harness-node-and-python:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-      - run: npm install
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm test
+      - run: python -m unittest discover -s scripts/tests -v
+      - run: python -m py_compile scripts/*.py scripts/tests/*.py
+      - name: Build sanitized CLI release archive and verify SHA
+        run: |
+          python scripts/make_release.py --out "$RUNNER_TEMP/ai3d-dist"
+          python scripts/verify_release.py "$RUNNER_TEMP/ai3d-dist/ai-3d-game-harness-v$(node -p "require('./package.json').version").tar.gz"
+          (cd "$RUNNER_TEMP/ai3d-dist" && sha256sum -c SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ai-3d-game-harness-distribution
+          path: |
+            ${{ runner.temp }}/ai3d-dist/*.tar.gz
+            ${{ runner.temp }}/ai3d-dist/SHA256SUMS
+            ${{ runner.temp }}/ai3d-dist/RELEASE_MANIFEST.json
+          if-no-files-found: error
+          retention-days: 30
+
+  macos-native-input-typecheck:
+    runs-on: macos-15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile-check restricted OS input adapter
+        run: swiftc -typecheck scripts/macos_input_driver.swift
+
+# CI without a provisioned Unity Editor + Coplay cannot certify a game release.
+# Real Metal Player, OS Accessibility, paper-cut and physical QA are independent.

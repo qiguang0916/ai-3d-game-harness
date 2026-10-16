@@ -1,5 +1,21 @@
 # AI 3D Game Harness
 
+**Current tool release: v0.3.0 · macOS Unity Editor + Player QA + evidence-driven release gate.**
+
+**中文用户指南：[完整安装与使用](docs/USER_GUIDE_CN.md) · [交付与实测报告](docs/FINAL_DELIVERY_REPORT_20261016.md)**
+
+Quick start after downloading the source/release archive:
+
+```bash
+./scripts/bootstrap.sh
+./bin/ai3d-harness doctor examples/second-life-workshop/harness.config.example.json
+./bin/ai3d-game-qa --help
+```
+
+Features: real Coplay Unity MCP TestJobs, scripted Player replay, actual macOS A/B screenshots, pixel diff/heatmaps, performance log gates, optional permission-bound native OS mouse input, A4 paper-cut verification, isolated Codex repair, and seven-category same-commit release gating. See [v0.3.0 changelog](CHANGELOG.md).
+
+**Tool passing its own tests does not mean the game passed.** Current Second Life Workshop still has real 180°/360° rotation and stone-contact test failures; native OS input needs Accessibility authorization and final paper tearing proof is absent. All these conditions remain BLOCKED/FAIL, not hidden.
+
 A headless control plane for one-person, AI-assisted 3D game development.
 
 It coordinates coding agents, Blender, Unity, MCP tools, evidence collection, quality gates, repair loops, and durable project state.
@@ -221,3 +237,22 @@ See [docs/UPSTREAMS.md](docs/UPSTREAMS.md).
 ## License
 
 MIT.
+
+
+## v0.2-alpha branch: evidence-first Unity QA
+
+The `feat/v0.2-unity-test-harness` branch adds **read-only artifact QA** to the existing DAG + MCP control plane. It does not claim an actual Unity Editor E2E connection until a target-project identity check passes.
+
+New `qa-file` adapter:
+- `unity-xml`: inspect **completed** NUnit XML, exact test counts, failed/skipped/inconclusive = 0;
+- `png`: check real PNG structure, dimensions, per-chunk CRC and decompression;
+- `json-pass` / `json-check`: verify HUD pixel reports and QA19/QA22 physics JSON assertions;
+- `log-markers`: require explicit runtime events, reject forbidden markers;
+- `project-identity`: verify specific Git branch, Unity Editor version, optional clean worktree and **exact active Editor path**;
+- snapshot all evidence by SHA-256 into the isolated Harness runtime project.
+
+Use `requireVerifiedEvidence: true` on acceptance criteria to prevent a successful MCP invocation from satisfying test/screenshot acceptance without a verified, hashed local evidence file.
+
+See [upgrade plan](docs/UPGRADE_V02_IMPLEMENTATION.md), [work breakdown](docs/UPGRADE_V02_TASKS.md), [runbook](docs/V02_LOCAL_RUNBOOK.md) and [execution report](docs/V02_IMPLEMENTATION_REPORT_20261016.md). A generic strict contract is under `examples/second-life-workshop/`.
+
+**Boundary:** MCP protocol discovery, historical-artefact verification and deterministic replay are distinct levels. Actual Unity Editor TestJob lifecycle, new Player replay, OS mouse automation and full-game E2E remain future gated phases. Do not treat this alpha branch as a commercial Unity test certification.

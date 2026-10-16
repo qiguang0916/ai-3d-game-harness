@@ -81,6 +81,19 @@ test("project report writes JSON and Markdown summaries", async () => {
     assert.match(json, /"passed": true/);
     assert.match(markdown, /Overall: \*\*PASS\*\*/);
     assert.match(markdown, /T1/);
+
+    // Contract can become stricter after a previous DONE. The report must
+    // not trust the persisted status when the latest evidence is unverified.
+    await writeFile(join(contractsDir, "task.json"),JSON.stringify({
+      id:"T1",title:"Report task",goal:"Generate report",kind:"generic",
+      dependencies:[],maxAttempts:2,
+      acceptanceCriteria:[{id:"A01",description:"test passed",
+        requiredEvidence:["test"],requireVerifiedEvidence:true}],
+    }));
+    const tightened=await writeProjectReport(root,contractsDir);
+    assert.equal(tightened.report.tasks[0]?.status,"done");
+    assert.equal(tightened.report.tasks[0]?.gatePassed,false);
+    assert.equal(tightened.report.passed,false);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

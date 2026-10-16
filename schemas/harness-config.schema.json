@@ -152,10 +152,51 @@
         }
       }
     },
+    "qaFileAdapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "actions"],
+      "properties": {
+        "type": { "const": "qa-file" },
+        "actions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["unity-xml", "png", "image-diff", "performance-log", "json-pass", "json-check", "log-markers", "project-identity"]
+          }
+        },
+        "allowedRoots": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "unityEditorAdapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type","command","projectPath","bridgePort","actions"],
+      "properties": {
+        "type": { "const": "unity-editor" },
+        "command": { "type": "string", "minLength": 1 },
+        "args": { "type": "array", "items": { "type": "string" } },
+        "cwd": { "type": "string", "minLength": 1 },
+        "env": { "type": "object", "additionalProperties": { "type": "string" } },
+        "timeoutMs": { "type": "number", "exclusiveMinimum": 0 },
+        "projectPath": { "type": "string", "minLength": 1 },
+        "bridgePort": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "actions": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "enum": ["run-tests", "read-console", "inspect-scene"] }
+        }
+      }
+    },
     "actionAdapter": {
       "oneOf": [
         { "$ref": "#/$defs/mcpAdapter" },
-        { "$ref": "#/$defs/jsonProcessAdapter" }
+        { "$ref": "#/$defs/jsonProcessAdapter" },
+        { "$ref": "#/$defs/qaFileAdapter" },
+        { "$ref": "#/$defs/unityEditorAdapter" }
       ]
     },
     "repair": {
