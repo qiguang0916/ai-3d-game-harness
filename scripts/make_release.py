@@ -82,8 +82,18 @@ def main():
     if not all(x in entries for x in ("dist/cli.js","scripts/bootstrap.sh",
                                      "bin/ai3d-harness","package-lock.json")):
         raise ValueError("distribution missing essential startup files")
-    git=subprocess.run(["git","-C",str(ROOT),"rev-parse","HEAD"],
-        text=True,capture_output=True,check=True).stdout.strip()
+    git_run=subprocess.run(["git","-C",str(ROOT),"rev-parse","HEAD"],
+        text=True,capture_output=True,check=False)
+    git=git_run.stdout.strip() if git_run.returncode==0 else ""
+    # Distribution users can run the packager smoke-test after extracting
+    # the release even though there is no .git directory in their tarball.
+    if not re.fullmatch(r"[a-f0-9]{40}",git):
+        previous=ROOT/"RELEASE_MANIFEST.json"
+        if not previous.is_file():
+            raise ValueError("no trustworthy source commit in Git or release manifest")
+        git=json.loads(previous.read_text()).get("sourceCommit","")
+    if not re.fullmatch(r"[a-f0-9]{40}",git):
+        raise ValueError("invalid source commit provenance")
     summary={
         "release":version,
         "sourceCommit":git,
