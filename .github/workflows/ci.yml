@@ -28,16 +28,16 @@ jobs:
       - run: python -m py_compile scripts/*.py scripts/tests/*.py
       - name: Build sanitized CLI release archive and verify SHA
         run: |
-          python scripts/make_release.py --out build/distribution
-          python scripts/verify_release.py build/distribution/ai-3d-game-harness-v$(node -p "require('./package.json').version").tar.gz
-          sha256sum -c build/distribution/SHA256SUMS
+          python scripts/make_release.py --out "$RUNNER_TEMP/ai3d-dist"
+          python scripts/verify_release.py "$RUNNER_TEMP/ai3d-dist/ai-3d-game-harness-v$(node -p "require('./package.json').version").tar.gz"
+          (cd "$RUNNER_TEMP/ai3d-dist" && sha256sum -c SHA256SUMS)
       - uses: actions/upload-artifact@v4
         with:
           name: ai-3d-game-harness-distribution
           path: |
-            build/distribution/*.tar.gz
-            build/distribution/SHA256SUMS
-            build/distribution/RELEASE_MANIFEST.json
+            ${{ runner.temp }}/ai3d-dist/*.tar.gz
+            ${{ runner.temp }}/ai3d-dist/SHA256SUMS
+            ${{ runner.temp }}/ai3d-dist/RELEASE_MANIFEST.json
           if-no-files-found: error
           retention-days: 30
 
