@@ -22,7 +22,7 @@ class NativeInputTests(unittest.TestCase):
             env=dict(os.environ)
             env.pop("HARNESS_OS_INPUT_APPROVED",None)
             r=subprocess.run([sys.executable,str(SCRIPT)],
-                input=json.dumps({"protocol":"ai-3d-game-harness/action-v1",
+                input=json.dumps({"protocol":"ai-3dgame-test-harness/action-v1",
                                   "action":"native-input","projectRoot":root,
                                   "input":{}}),
                 text=True,capture_output=True,env=env,timeout=15)

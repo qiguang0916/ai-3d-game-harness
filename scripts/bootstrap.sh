@@ -35,7 +35,7 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
 fi
 echo
 echo "INSTALLATION READY"
-echo "  $ROOT/bin/ai3d-harness doctor <config.json>"
-echo "  $ROOT/bin/ai3d-game-qa --help"
+echo "  $ROOT/bin/ai3d-test-harness doctor <config.json>"
+echo "  $ROOT/bin/ai3d-game-test-qa --help"
 echo "Note: Unity Editor connection, actual game passing, and macOS"
 echo "Accessibility are separate runtime gates; bootstrap does not bypass them."

@@ -2,7 +2,7 @@
 
 ## Product boundary
 
-AI 3D Game Harness is the control plane above coding agents, DCC tools, and game-engine tools.
+AI 3D Game Test Harness is the control plane above coding agents, DCC tools, and game-engine tools.
 
 It does **not** replace Codex, Blender, Unity, Blender MCP, or Unity MCP. It coordinates them, persists state, collects evidence, applies acceptance policy, and controls retry/repair.
 

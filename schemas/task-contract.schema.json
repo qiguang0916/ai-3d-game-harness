@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ai-3d-game-harness.local/schemas/task-contract.schema.json",
-  "title": "AI 3D Game Harness Task Contract",
+  "$id": "https://ai-3dgame-test-harness.local/schemas/task-contract.schema.json",
+  "title": "AI 3D Game Test Harness Task Contract",
   "type": "object",
   "additionalProperties": false,
   "required": [

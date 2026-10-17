@@ -8,7 +8,7 @@ The process receives JSON on stdin:
 
 ```json
 {
-  "protocol": "ai-3d-game-harness/action-v1",
+  "protocol": "ai-3dgame-test-harness/action-v1",
   "adapter": "codex",
   "action": "implement",
   "input": {},

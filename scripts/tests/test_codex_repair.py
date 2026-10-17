@@ -13,7 +13,7 @@ import unittest
 
 WRAPPER = Path(__file__).resolve().parents[1] / "codex_repair_provider.py"
 PAYLOAD = {
-    "protocol": "ai-3d-game-harness/repair-v1",
+    "protocol": "ai-3dgame-test-harness/repair-v1",
     "projectRoot": "",
     "task": {"id": "T-REPAIR-SAFE"},
     "gate": {"passed": False},

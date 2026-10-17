@@ -29,11 +29,11 @@ jobs:
       - name: Build sanitized CLI release archive and verify SHA
         run: |
           python scripts/make_release.py --out "$RUNNER_TEMP/ai3d-dist"
-          python scripts/verify_release.py "$RUNNER_TEMP/ai3d-dist/ai-3d-game-harness-v$(node -p "require('./package.json').version").tar.gz"
+          python scripts/verify_release.py "$RUNNER_TEMP/ai3d-dist/ai-3dgame-test-harness-v$(node -p "require('./package.json').version").tar.gz"
           (cd "$RUNNER_TEMP/ai3d-dist" && sha256sum -c SHA256SUMS)
       - uses: actions/upload-artifact@v4
         with:
-          name: ai-3d-game-harness-distribution
+          name: ai-3dgame-test-harness-distribution
           path: |
             ${{ runner.temp }}/ai3d-dist/*.tar.gz
             ${{ runner.temp }}/ai3d-dist/SHA256SUMS

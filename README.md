@@ -1,4 +1,4 @@
-# AI 3D Game Harness
+# AI 3D Game Test Harness
 
 **Current tool release: v0.3.0 · macOS Unity Editor + Player QA + evidence-driven release gate.**
 
@@ -8,8 +8,8 @@ Quick start after downloading the source/release archive:
 
 ```bash
 ./scripts/bootstrap.sh
-./bin/ai3d-harness doctor examples/second-life-workshop/harness.config.example.json
-./bin/ai3d-game-qa --help
+./bin/ai3d-test-harness doctor examples/second-life-workshop/harness.config.example.json
+./bin/ai3d-game-test-qa --help
 ```
 
 Features: real Coplay Unity MCP TestJobs, scripted Player replay, actual macOS A/B screenshots, pixel diff/heatmaps, performance log gates, optional permission-bound native OS mouse input, A4 paper-cut verification, isolated Codex repair, and seven-category same-commit release gating. See [v0.3.0 changelog](CHANGELOG.md).
@@ -256,3 +256,7 @@ Use `requireVerifiedEvidence: true` on acceptance criteria to prevent a successf
 See [upgrade plan](docs/UPGRADE_V02_IMPLEMENTATION.md), [work breakdown](docs/UPGRADE_V02_TASKS.md), [runbook](docs/V02_LOCAL_RUNBOOK.md) and [execution report](docs/V02_IMPLEMENTATION_REPORT_20261016.md). A generic strict contract is under `examples/second-life-workshop/`.
 
 **Boundary:** MCP protocol discovery, historical-artefact verification and deterministic replay are distinct levels. Actual Unity Editor TestJob lifecycle, new Player replay, OS mouse automation and full-game E2E remain future gated phases. Do not treat this alpha branch as a commercial Unity test certification.
+
+## CLI naming and backwards compatibility
+
+Canonical names: `ai3d-test-harness` and `ai3d-game-test-qa`. Legacy entrypoints `ai3d-harness` and `ai3d-game-qa` remain available. Repository: `qiguang0916/ai-3dgame-test-harness`.

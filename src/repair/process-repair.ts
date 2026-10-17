@@ -82,7 +82,7 @@ export class JsonProcessRepairProvider implements RepairProvider {
       child.stdin.end(
         `${JSON.stringify(
           {
-            protocol: "ai-3d-game-harness/repair-v1",
+            protocol: "ai-3dgame-test-harness/repair-v1",
             projectRoot: context.projectRoot,
             task: context.task,
             gate: context.gate,

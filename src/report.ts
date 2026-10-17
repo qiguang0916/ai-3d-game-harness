@@ -70,7 +70,7 @@ export async function buildProjectReport(
 
 const markdown = (report: ProjectReport): string => {
   const lines = [
-    "# AI 3D Game Harness Report",
+    "# AI 3D Game Test Harness Report",
     "",
     `Generated: ${report.generatedAt}`,
     "",

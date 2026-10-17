@@ -1,4 +1,4 @@
-# AI 3D Game Harness — Changelog
+# AI 3D Game Test Harness — Changelog
 
 ## v0.3.0 — 2026-10-16
 

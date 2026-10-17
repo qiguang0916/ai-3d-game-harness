@@ -20,7 +20,7 @@ The repair process receives JSON on stdin:
 
 ```json
 {
-  "protocol": "ai-3d-game-harness/repair-v1",
+  "protocol": "ai-3dgame-test-harness/repair-v1",
   "projectRoot": "...",
   "task": {},
   "gate": {},

@@ -55,7 +55,7 @@ def main():
         raise ValueError("invalid release version")
     if not (ROOT/"dist/cli.js").is_file():
         raise ValueError("build dist CLI before packaging")
-    prefix="ai-3d-game-harness-v"+version
+    prefix="ai-3dgame-test-harness-v"+version
     entries={}
     for top in ALLOW_TOP:
         path=ROOT/top
@@ -80,7 +80,7 @@ def main():
                         raise ValueError("private string in release: "+str(rel)+" / "+pattern)
             entries[str(rel)]=contents
     if not all(x in entries for x in ("dist/cli.js","scripts/bootstrap.sh",
-                                     "bin/ai3d-harness","package-lock.json")):
+                                     "bin/ai3d-harness","bin/ai3d-test-harness","bin/ai3d-game-test-qa","package-lock.json")):
         raise ValueError("distribution missing essential startup files")
     git_run=subprocess.run(["git","-C",str(ROOT),"rev-parse","HEAD"],
         text=True,capture_output=True,check=False)

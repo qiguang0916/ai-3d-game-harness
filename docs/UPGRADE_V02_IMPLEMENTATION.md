@@ -1,7 +1,7 @@
-# AI 3D Game Harness v0.2 — Second Life Workshop 升级与执行方案
+# AI 3D Game Test Harness v0.2 — Second Life Workshop 升级与执行方案
 
 > 2026-10-15 · 方案与实际执行证据分离。v0.1 的 CI PASS **不等于**真实 Unity 游戏 E2E PASS。
-> 适用范围：`qiguang0916/ai-3d-game-harness`，业务试点 `second-life-workshop-commercial`。
+> 适用范围：`qiguang0916/ai-3dgame-test-harness`，业务试点 `second-life-workshop-commercial`。
 > 原则：一人 + AI，复用现有工具和工作树，不重写 Unity 操作引擎，不在正式环境进行无保护的自动修改。
 
 ## 1. 当前基线（已核实）
