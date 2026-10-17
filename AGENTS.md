@@ -1,4 +1,4 @@
-# AI 3D Game Harness operating contract
+# AI 3D Game Test Harness operating contract
 
 ## Mission
 
@@ -23,7 +23,7 @@ Build a reliable AI-first control plane for 3D game development. The harness coo
 - Treat screenshots, logs, test results, profiler captures, and asset reports as first-class evidence.
 - Keep third-party reuse license-compatible and documented in `docs/UPSTREAMS.md`.
 
-## Current milestone
+## Historical foundation milestone
 
 Foundation v0.1:
 1. task contracts
@@ -36,3 +36,7 @@ Foundation v0.1:
 8. CI
 
 Next: Blender adapter, Unity adapter, then the KNIFE_001 closed-loop reference pipeline.
+
+## Current release
+
+v0.3.0 is an evidence-driven game testing and QA harness. See README and current release report for the implementation status.

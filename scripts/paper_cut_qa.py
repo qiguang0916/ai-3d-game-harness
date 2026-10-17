@@ -179,7 +179,7 @@ def verify(report,root,min_cases=3):
 
 def main():
     request=json.load(sys.stdin)
-    if request.get("protocol")!="ai-3d-game-harness/action-v1" or request.get("action")!="verify-paper-cut":
+    if request.get("protocol")!="ai-3dgame-test-harness/action-v1" or request.get("action")!="verify-paper-cut":
         raise ValueError("unsupported Harness paper action")
     inp=request.get("input") or {}
     root=Path(inp.get("allowedEvidenceRoot","")).resolve(strict=True)

@@ -1,11 +1,12 @@
 {
-  "name": "ai-3d-game-harness",
+  "name": "ai-3dgame-test-harness",
   "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "AI-first orchestration and evidence-gated verification for Blender + Unity game development.",
   "license": "MIT",
   "bin": {
+    "ai3d-test-harness": "dist/cli.js",
     "ai3d-harness": "dist/cli.js"
   },
   "engines": {

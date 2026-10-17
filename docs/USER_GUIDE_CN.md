@@ -1,6 +1,6 @@
-# AI 3D Game Harness 完整使用手册（v0.3.0）
+# AI 3D Game Test Harness 完整使用手册（v0.3.0）
 
-工具仓库：`qiguang0916/ai-3d-game-harness`。
+工具仓库：`qiguang0916/ai-3dgame-test-harness`。
 目的：**一人 + AI** 进行真实 Blender / Unity 开发与验证，自动发现故障、保存证据、输出修复候选、经批准再交付。不是代替真实游戏或绕过操作系统权限的软件。
 
 ## 0. 理解三个相互独立的状态
@@ -169,4 +169,4 @@ HARNESS_REPAIR_TEST_ARGS_JSON='["npm","test"]'
 
 Harness 的源代码、测试工具、文档、示例合同、CI 和发布脚本一起打包；`.local-pilot`、`~/.codex`、Unity Library、账号、密钥、历史素材和游戏 App 不打包。
 
-解压 `ai-3d-game-harness-v0.3.0.tar.gz` 后运行 `./scripts/bootstrap.sh`，即可拥有可安装与重复验证的完整 Harness 控制工具。真正的 Steam 游戏发行仍由七类质量门禁共同决定。
+解压 `ai-3dgame-test-harness-v0.3.0.tar.gz` 后运行 `./scripts/bootstrap.sh`，即可拥有可安装与重复验证的完整 Harness 控制工具。真正的 Steam 游戏发行仍由七类质量门禁共同决定。

@@ -40,6 +40,8 @@ class ReleasePackageTests(unittest.TestCase):
             names=(dest/"RELEASE_MANIFEST.json").read_text()
             manifest=json.loads(names)
             self.assertIn("bin/ai3d-harness",manifest["files"])
+            self.assertIn("bin/ai3d-test-harness",manifest["files"])
+            self.assertIn("bin/ai3d-game-test-qa",manifest["files"])
             self.assertNotIn(".local-pilot",names)
             raw=bytearray(files[0].read_bytes())
             raw[-10]^=1

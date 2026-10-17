@@ -58,7 +58,7 @@ def image_difference(before, after, region, pixel_threshold):
 
 def main():
     req=json.load(sys.stdin)
-    if req.get("protocol")!="ai-3d-game-harness/action-v1" or req.get("action")!="native-input":
+    if req.get("protocol")!="ai-3dgame-test-harness/action-v1" or req.get("action")!="native-input":
         raise RuntimeError("unsupported Harness input operation")
     if os.getenv("HARNESS_OS_INPUT_APPROVED")!="1":
         raise RuntimeError("explicit HARNESS_OS_INPUT_APPROVED=1 required")

@@ -95,7 +95,7 @@ export class StdioMcpClient {
       protocolVersion: this.options.protocolVersion ?? "2025-06-18",
       capabilities: {},
       clientInfo: {
-        name: "ai-3d-game-harness",
+        name: "ai-3dgame-test-harness",
         version: "0.1.0",
       },
     })) as McpInitializeResult;

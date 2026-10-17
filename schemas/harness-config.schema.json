@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ai-3d-game-harness.local/schemas/harness-config.schema.json",
-  "title": "AI 3D Game Harness Config",
+  "$id": "https://ai-3dgame-test-harness.local/schemas/harness-config.schema.json",
+  "title": "AI 3D Game Test Harness Config",
   "type": "object",
   "additionalProperties": false,
   "required": ["version", "adapters"],

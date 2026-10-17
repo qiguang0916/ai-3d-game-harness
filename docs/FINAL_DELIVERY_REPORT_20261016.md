@@ -1,4 +1,4 @@
-# AI 3D Game Harness v0.3.0 — 最终工具交付 / QA 报告
+# AI 3D Game Test Harness v0.3.0 — 最终工具交付 / QA 报告
 
 > 记录日期：2026-10-16，开发分支 `feat/v0.2-unity-test-harness`。
 > 本文记录工具自身可用性；**游戏 QA 不通过不是 Harness 失败。**
@@ -52,11 +52,11 @@ QA19/QA22 物理控制回放、原生 macOS 输入（受系统权限门禁）、
 
 ## 安装与交付文件
 
-发布包 `ai-3d-game-harness-v0.3.0.tar.gz`，附 `SHA256SUMS`、`RELEASE_MANIFEST.json`。
+发布包 `ai-3dgame-test-harness-v0.3.0.tar.gz`，附 `SHA256SUMS`、`RELEASE_MANIFEST.json`。
 
 ```bash
-tar -xzf ai-3d-game-harness-v0.3.0.tar.gz
-cd ai-3d-game-harness-v0.3.0
+tar -xzf ai-3dgame-test-harness-v0.3.0.tar.gz
+cd ai-3dgame-test-harness-v0.3.0
 ./scripts/bootstrap.sh
 ./bin/ai3d-harness --help
 ./bin/ai3d-game-qa --help

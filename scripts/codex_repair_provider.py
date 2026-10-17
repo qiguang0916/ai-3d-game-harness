@@ -74,7 +74,7 @@ def check_login(binary):
 
 
 def read_failed_gate(payload):
-    if payload.get("protocol") != "ai-3d-game-harness/repair-v1":
+    if payload.get("protocol") != "ai-3dgame-test-harness/repair-v1":
         fail("unsupported repair protocol")
     task = payload.get("task")
     gate = payload.get("gate")

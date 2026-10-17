@@ -1,4 +1,4 @@
-# AI 3D Game Harness v0.2-alpha — 实施记录与实测结论
+# AI 3D Game Test Harness v0.2-alpha — 实施记录与实测结论
 
 记录日期：2026-10-16（本机时区 PDT）。基线 main `851ce9a`，新分支 `feat/v0.2-unity-test-harness`。
 如需复核原始机器输出，查看 Git 未追踪且忽略的 `.local-pilot/`（绝不推送本机绝对路径、截图和日志）。
@@ -39,7 +39,7 @@
 1. **必须先开启且绑定正确的 Unity Editor**，再跑真正的 MCP `run_tests` / `get_test_job` 轮询与 PlayMode。
 2. macOS 上游戏项目多个 worktrees 并存，必须验证 `-projectPath` 精确匹配，目标 Editor 未启动时绝不可自动连接另一个 Editor。
 3. Unity 测试脚本 `KnifeControlEvidence`、`KnifeQualityReplayQA19`、`KnifeFlipLandingEvidenceQA22` 是 `UNITY_EDITOR || DEVELOPMENT_BUILD`：生产 Player 不能用来代替这些特定 Replay。
-4. 现有 `ai-3d-game-harness` 的重试/修复提供接口，但 Codex 修复执行器尚未有安全隔离配置，默认禁用。
+4. 现有 `ai-3dgame-test-harness` 的重试/修复提供接口，但 Codex 修复执行器尚未有安全隔离配置，默认禁用。
 5. 本地磁盘剩余空间约 41GiB；应避免重复完整 Unity Player 打包。
 6. `qa-file` 强制校验读取时的原始证据并留有 SHA-256 副本；为了完全防止事后篡改，未来还需在跨设备持久报告复核时再次验证副本哈希。
 

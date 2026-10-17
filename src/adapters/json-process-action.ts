@@ -160,7 +160,7 @@ export class JsonProcessActionAdapter implements ActionAdapter {
       child.stdin.end(
         `${JSON.stringify(
           {
-            protocol: "ai-3d-game-harness/action-v1",
+            protocol: "ai-3dgame-test-harness/action-v1",
             adapter: this.id,
             action,
             input,

@@ -9,7 +9,7 @@ import sys
 
 def main():
     req = json.load(sys.stdin)
-    if req.get("protocol") != "ai-3d-game-harness/action-v1" or req.get("action") != "color-parity":
+    if req.get("protocol") != "ai-3dgame-test-harness/action-v1" or req.get("action") != "color-parity":
         raise ValueError("unsupported action")
     data = req.get("input", {})
     game = Path(data.get("gameRoot", "")).resolve(strict=True)

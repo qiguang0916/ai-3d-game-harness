@@ -139,7 +139,7 @@ def evaluate_replay(action, summary):
 
 def main():
     request = json.load(sys.stdin)
-    if request.get("protocol") != "ai-3d-game-harness/action-v1":
+    if request.get("protocol") != "ai-3dgame-test-harness/action-v1":
         raise ValueError("unsupported Harness action protocol")
     action = request.get("action")
     if action not in ("capture-hud", "replay-qa22", "replay-qa19"):
